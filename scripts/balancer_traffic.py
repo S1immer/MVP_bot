@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS traffic_logs (
 conn.commit()
 
 # Обрабатываем все сервера из login.py
-for server_key, server_info in login.servers.items():
+for server_key, server_info in login.items():
     print(f"Обрабатываем сервер {server_key}...")
 
     # URL для авторизации и получения данных
