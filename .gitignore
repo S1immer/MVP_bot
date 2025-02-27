@@ -7,4 +7,4 @@ __pycache__/
 .env
 
 #server login information
-servers.py
+data_servers/servers.py

@@ -2,7 +2,7 @@ import requests
 import json
 import logging
 import uuid
-from servers import login  # Импортируем данные о серверах
+from data_servers.servers import login  # Импортируем данные о серверах
 from urllib.parse import urlparse  # Для разбора URL
 
 # Настройка логирования
