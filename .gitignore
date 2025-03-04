@@ -8,3 +8,4 @@ __pycache__/
 
 #server login information
 data_servers/servers.py
+database
