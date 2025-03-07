@@ -1,13 +1,24 @@
-import sqlite3
+import psycopg2
+from database.DB_CONN import connect_to_db
+
 
 def get_least_loaded_server():
-    conn = sqlite3.connect('../database/traffic.db')
-    cursor = conn.cursor()
+    conn = connect_to_db()
 
-    cursor.execute("SELECT server_name, traffic_data FROM traffic_logs")
-    servers_traffic = cursor.fetchall()
+    if conn:
+        cursor = conn.cursor()
 
-    conn.close()
+        cursor.execute("SELECT server_name, traffic FROM traffic_data")
+        servers_traffic = cursor.fetchall()
 
-    least_loaded_server = min(servers_traffic, key=lambda x: x[1])
-    return least_loaded_server[0]  # Возвращает имя сервера
+        conn.close()
+
+        if servers_traffic:
+            least_loaded_server = min(servers_traffic, key=lambda x: x[1])
+            return least_loaded_server[0]  # Возвращает имя сервера
+        else:
+            print("Нет данных о серверах")
+            return None
+    else:
+        print("Не удалось подключиться к базе данных")
+        return None
