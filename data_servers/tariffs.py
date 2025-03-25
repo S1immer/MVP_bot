@@ -1,26 +1,22 @@
 tariffs = {
     'trial': {
         'days': 2,
-        'status': 'test'
+        'price': 0
     },
     'month': {
         'days': 30,
-        'status': 'active'
-    },
-    'two_months': {
-        'days': 60,
-        'status': 'active'
+        'price': 199
     },
     'three_months': {
         'days': 90,
-        'status': 'active'
+        'price': 569
     },
     'six_months': {
         'days': 180,
-        'status': 'active'
+        'price': 1099
     },
     'year': {
         'days': 365,
-        'status': 'active'
+        'price': 2099
     }
 }
