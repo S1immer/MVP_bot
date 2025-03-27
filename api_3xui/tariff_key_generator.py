@@ -1,17 +1,17 @@
+import asyncio
 from uuid import uuid4
 from scripts.get_least_loaded_server import get_least_loaded_server
 from api_3xui.authorize import login_with_credentials, get_clients, link
 from api_3xui.client import add_user
-from data_servers.tariffs import tariffs
+from data_servers.tariffs import tariffs_data
 from data_servers.servers import server_id
 from datetime import datetime, timedelta, timezone
-import asyncio
 
 
 session_global = None
 
 
-async def key_trial(telegram_id: int, tariff_name: str):
+async def key_generation(telegram_id: str, period: str, devices: str):
 
     server_id_name = get_least_loaded_server()
     # print(f"Наименее загруженный сервер: {server_id_name}")
@@ -46,13 +46,14 @@ async def key_trial(telegram_id: int, tariff_name: str):
         # print(f"Сгенерированный UUID: {client_uuid}")
 
         # Получаем данные о тарифе
-        tariff_data = tariffs[tariff_name]
-        trial_days = tariff_data['days']
-        # print(f"Выбран тариф: {tariff_name}, дней: {trial_days}")
+        tariff_data = tariffs_data[period][devices]
+        tariff_days = tariff_data['days']
+        device = tariff_data['device_limit']
+        print(f"Выбран тариф: {period}, {device}, дней: {tariff_days}")
 
         # Вычисляем время истечения срока действия
         current_time = datetime.now(timezone.utc)
-        expiry_time = current_time + timedelta(days=trial_days)
+        expiry_time = current_time + timedelta(days=tariff_days)
         expiry_timestamp = int(expiry_time.timestamp() * 1000)
         # print("Добавление клиента...")
 
@@ -60,8 +61,8 @@ async def key_trial(telegram_id: int, tariff_name: str):
             session_global,
             server_id_name,
             client_uuid,
-            telegram_id,
-            2,
+            str(telegram_id),
+            device,
             0,
             expiry_timestamp,
             True,
@@ -79,7 +80,7 @@ async def key_trial(telegram_id: int, tariff_name: str):
 
         # print("Формирование ключа...")
         link_data = await link(
-            session_global,  # Передаем global_session
+            session_global,
             server_id_name,
             client_uuid,
             str(telegram_id)
@@ -94,15 +95,17 @@ async def key_trial(telegram_id: int, tariff_name: str):
 
 
 # Тестирование функции
-# async def main():
-#     telegram_id = 65233
-#     tariff_name = 'year'  # Укажите название тарифа здесь
-#     key = await key_trial(telegram_id, tariff_name)
-#     if key:
-#         print(f"Тестовый ключ: {key}")
-#     else:
-#         print("Не удалось получить тестовый ключ.")
-#
-#
-# if __name__ == "__main__":
-#     asyncio.run(main())
+async def main():
+    telegram_id = str(3245615)
+    period = 'six_months'
+    devices = '5_devices'
+
+    key = await key_generation(telegram_id, period, devices)
+    if key:
+        print(f"Тестовый ключ: {key}")
+    else:
+        print("Не удалось получить тестовый ключ.")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
