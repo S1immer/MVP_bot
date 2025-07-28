@@ -1,5 +1,7 @@
 from aiogram import Bot, Dispatcher
-from data.config import config_file
+from data.config import token  # Импортируем токен из config.py
 
-bot = Bot(config_file['token'])
+bot = Bot(token)
 dp = Dispatcher(bot=bot)
+
+

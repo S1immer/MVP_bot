@@ -1,83 +1,286 @@
-from aiogram import F
-from aiogram.types import Message, BotCommand
+from aiogram import types, Router, F
+from aiogram.types import Message, BotCommand, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
-from aiogram import types
+from aiogram.filters.state import StateFilter
+from aiogram.fsm.context import FSMContext
+
 from os import path
-from keyboard.user_keyboard import *
 from data.louder import bot
-from database.functions_db import register_user
-from aiogram import Router
+
+from database.functions_db_async import *
+
+from datetime import datetime
+
+from keyboard.user_keyboard import *
+
+from handlers.states import SubscriptionState
 
 
 
 router = Router()
 
+
 # Устанавливаем команды для бота
 commands = [
-    BotCommand(command="/start", description="Запустить бота"),
+    BotCommand(command="/start", description="🏠Главное меню"),
+    BotCommand(command="/tariffs", description="📊Тарифы"),
+    BotCommand(command="/pay", description="💳Оплатить подписку"),
+    BotCommand(command="/my_id", description="Мой 🆔"),
+    BotCommand(command="/support", description="🆘 Помощь"),
 ]
 
 async def set_commands():
     await bot.set_my_commands(commands=commands)
 
+
+# ______________________________________________________________________________________________________
+@router.message(Command("pay"))
+async def pay_sub(msg: Message, state):
+    await buy_subscription(msg, state)
+
+
+@router.message(Command("support"))
+async def helping(msg: Message):
+    await help_section(msg)
+
+
+@router.message(Command("my_id"))
+async def show_my_id(msg: Message):
+    telegram_id = msg.from_user.id
+    await msg.answer(text=f"🆔 Профиля: {telegram_id}")
+
+
+@router.message(Command("tariffs"))
+async def show_tariffs(message: types.Message):
+    await message.answer(text=f"<b>📊 Тарифы:</b>\n\n"
+    "🟢 <b>1 месяц</b> — 199₽ / 349₽ / 549₽ / 949₽\n"
+    "(1 / 2 / 3 / 5 устройств)\n\n"
+    "🔵 <b>3 месяца</b> — 549₽ / 1099₽ / 1649₽ / 2749₽\n"
+    "(1 / 2 / 3 / 5 устройств)\n\n"
+    "🟠 <b>6 месяцев</b> — 1049₽ / 2099₽ / 3149₽ / 5249₽\n"
+    "(1 / 2 / 3 / 5 устройств)\n\n"
+    "🔴 <b>12 месяцев</b> — 1899₽ / 3799₽ / 5749₽ / 6999₽\n"
+    "(1 / 2 / 3 / 5 устройств)\n\n"
+    "<b>🎁 Получайте скидки от 7% до 25% — чем больше выбираете, тем выгоднее!</b>", parse_mode='HTML')
+
+
 # Запуск бота
 @router.message(Command('start'))
 async def start_func(msg: Message):
     user_id = msg.from_user.id
-    register_user(user_id)
-    print(f"Пользователь с ID {user_id} запустил бота.")
 
-    await msg.answer_photo(
-        photo=types.FSInputFile(path.join('images', 'logo.jpg')),
-        caption=(
-            '🎉 Добро пожаловать в *MVPNet*🌐✨\n\n'
-            'Наш сервер \\- не просто сервер\\. Это умная консультация по вашей мобильной технике\\! *Получите ответ на ваш вопрос* в развёрнутом виде в любое время суток\\!\n\n'
-            '> 💰💰За 199 рублей в месяц вы получаете умную консультацию в любой момент времени, если у вас что\\-то случилось, мы поможем и объясним, почему ваш телефон работает не корректно\\!\n\n'
-            'Благодаря приложению мы сможем идентифицировать проблемы на вашем устройстве\\! *Не забудьте его установить*\\!\n\n'
-        ), parse_mode="MarkdownV2",
-        reply_markup=await trial_button(),
-        # Кнопка "Тестовый период"
-    )
-    await msg.answer (text='Выберите действие в меню:',reply_markup=await main_menu_keyboard())  # Главное меню (ReplyKeyboard)
+    # Проверка регистрации пользователя
+    if not await check_user_registered(user_id):
+        await register_user(user_id)
+        print(f"Пользователь с ID {user_id} зарегистрирован.")
+
+        await msg.answer_photo(
+            photo=types.FSInputFile(path.join('images', 'logo.jpg')),
+            caption=(
+                '🎉 Добро пожаловать в *MVPNet*🌐✨\n\n'
+                'Наш сервер \\- не просто сервер\\. Это умная консультация по вашей мобильной технике\\! *Получите ответ на ваш вопрос* в развёрнутом виде в любое время суток\\!\n\n'
+                '> 💰💰За 199 рублей в месяц вы получаете умную консультацию в любой момент времени, если у вас что\\-то случилось, мы поможем и объясним, почему ваш телефон работает не корректно\\!\n\n'
+                'Благодаря приложению мы сможем идентифицировать проблемы на вашем устройстве\\! *Не забудьте его установить*\\!\n\n'
+            ), parse_mode="MarkdownV2",
+            reply_markup=await trial_button(),
+        )
+    else:
+        # Если пользователь уже зарегистрирован, вызвать функцию remaining_days
+        await remaining_days(msg)
+        keyboard = await main_menu_keyboard()
+        await msg.answer(text="Выберите действие в меню: 👇🏼", reply_markup=keyboard)
+
+
+
+# ______________________________________________________________________________________________________
 
 
 # Обработчик кнопки "Остаток дней"
-@router.message(F.text == "Остаток дней")
-async def my_tariff(msg: Message):
-    await msg.answer(
-        f'👤 Профиль: {msg.from_user.username}\n\n'
-        f'<b>-- ID:</b> {msg.from_user.id}\n\n'
-        f'<b>Добро пожаловать в ваш личный кабинет! Здесь вы можете:</b>\n'
-        f'🚀 Посмотреть свои ключи.\n'
-        f'💰 Купить ключ.\n'
-        f'🆘 Обратиться в поддержку.\n'
-        f'<b>Выберите необходимое действие, и мы поможем вам!</b>'
-        )
+@router.message(F.text == "📆Остаток дней")
+async def remaining_days(msg: Message):
+    name_client = msg.from_user.first_name
+    telegram_id = msg.from_user.id
+
+    deleted_at = await check_date_subscribe(telegram_id)
+    limit_ip = await get_limit_device(telegram_id)
+
+
+    if deleted_at is None:
+        await msg.answer(text=f'👤 <b>Профиль:</b> {name_client}\n'
+                              f'____________________\n\n\n'
+                              f'❌ У вас нет активной подписки.', parse_mode='HTML')
+
+
+    else:
+        try:
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="💳Продлить подписку", callback_data="pay_subscribe")]
+                ]
+            )
+
+            now = datetime.now()
+            formatted_date = deleted_at.strftime('%d.%m.%Y, %H:%M:%S')
+
+            if deleted_at < now:
+                # Срок подписки прошёл
+                await msg.answer(
+                    text=f'👤 Профиль: <b>{name_client}</b>\n'
+                    f'____________________\n\n'
+                    f'❌ Подписка истекла: <b>{formatted_date}</b> Мск.',
+                    parse_mode='HTML', reply_markup=keyboard
+                )
+            else:
+                # Подписка ещё активна
+                active_status = '✅'
+                delta = deleted_at - now
+                days_left = delta.days
+                hours_left = delta.seconds // 3600
+                minutes_left = delta.seconds % 3600 // 60
+                await msg.answer(
+                    text=f'👤 Профиль: <b>{name_client}</b>\n'
+                    f'____________________\n\n'
+                    f'💡Active: {active_status}\n'
+                    f'📱Кол-во устройств: {limit_ip}\n'
+                    f'⏳ Осталось: <b>| {days_left} дн. | {hours_left} ч. | {minutes_left} м. |</b>\n'
+                    f'📅Подписка до: <b>{formatted_date} МСК</b>', parse_mode='HTML'
+                )
+
+
+        except Exception as e:
+            print(f"Ошибка при отправке сообщения: {e}")
+            await msg.answer("Произошла ошибка при обработке запроса.")
+
+
+
+        @router.callback_query(F.data == "pay_subscribe")
+        async def from_profile_to_subscription(callback: CallbackQuery, state: FSMContext):
+            await callback.answer()
+            await callback.message.delete()
+            await buy_subscription(callback.message, state)
+
+# ______________________________________________________________________________________________________
+
 
 # Обработчик кнопки "Инструкция и ключ"
 @router.message(F.text == "⚙️ Инструкция и 🔑 Ключ")
-async def instruction_key(msg: Message):
-    await msg.answer(text="⚙️ Раздел в разработке.", reply_markup=await main_menu_keyboard())
+async def instruction_key(msg: Message, state: FSMContext):
+    telegram_id = msg.from_user.id
+    await state.clear()
+    deleted_at = await check_date_subscribe(telegram_id)  # Получаем дату окончания подписки
 
-# Обработчик кнопки "Оплатить подписку"
+    if deleted_at is None:
+        await msg.answer(text="⚠️ У вас нет активной подписки.")
+        return
+
+    now = datetime.now()
+    if deleted_at < now:
+        formatted_date = deleted_at.strftime('%d.%m.%Y, %H:%M:%S')
+        await msg.answer(text=f"❌ Подписка истекла: <b>{formatted_date}</b> Мск.", parse_mode='HTML')
+        return
+
+    # Если подписка активна
+    active_key = await get_key(telegram_id=telegram_id)
+    if active_key is None:
+        await msg.answer(text="⚠️ У вас нет активной подписки.")
+    else:
+        await msg.answer(text="🔑Ключ: 👇🏻")
+        await msg.answer(text=f"<pre>{active_key}</pre>", parse_mode="HTML")
+        await msg.answer(text="📌 Выберите устройство, на которое планируете установить ключ:", reply_markup=await choosing_a_device())
+        await msg.answer(text=f"⚠️<b>Не делитесь ключом.</b> При использовании на устройствах сверх лимита подписки он автоматически блокируется системой!\n", parse_mode='HTML')
+
+
+
+# ______________________________________________________________________________________________________
+
+
 @router.message(F.text == "💸 Оплатить подписку")
-async def buy_subscription(msg: Message):
-    await msg.answer(text="<b>Выберите период вашей подписки:</b>", reply_markup=await inline_price())
+async def buy_subscription(msg: Message, state: FSMContext):
+    user_id = msg.from_user.id
+    status, subscription = await get_user_subscription_status(user_id)
+    await state.clear()
+
+    if status == 'no_subscription':
+        await msg.answer(
+            text="<b>❌ У вас нет активной подписки.</b>\n\n"
+                 "📅 Выберите срок подписки:",
+            reply_markup=await inline_price(),
+            parse_mode='HTML'
+        )
+        await state.set_state(SubscriptionState.no_sub_choose_tariff)
+
+    elif status == 'expired':
+        await msg.answer(text="<b>❌ Ваша подписка истекла.</b>\n\n"
+                              "📅 <b>Выберите срок продления подписки:</b>",
+            reply_markup=await inline_price(),
+            parse_mode='HTML'
+        )
+        await state.set_state(SubscriptionState.expired_choose_tariff)
+
+
+    elif status == 'active':
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🔄 Продлить подписку", callback_data="active_extend"),
+            ],
+            [
+                InlineKeyboardButton(text="⚙️ Изменить кол-во устройств", callback_data="active_change_devices"),
+            ]
+        ])
+
+        await msg.answer(
+            text="<b>✅ У вас уже есть активная подписка.</b>\n\n"
+                 "Что вы хотите сделать?",
+            reply_markup=keyboard,
+            parse_mode='HTML'
+        )
+        await state.set_state(SubscriptionState.active_choose_action)
+
+
+# ______________________________________________________________________________________________________
+
 
 # Обработчик кнопки "Реферальная система"
 @router.message(F.text == "🤝 Реферальная система")
 async def referral_system(msg: Message):
     await msg.answer("📢 Раздел в разработке.")
 
-# Обработчик кнопки "Канал"
-@router.message(F.text == "📺 Канал")
-async def channel(msg: Message):
-    await msg.answer("🔔 Подпишитесь на наш канал: https://t.me/acesstothewords")
+
+# ______________________________________________________________________________________________________
+
+
+# Обработчик кнопки "Сменить сервер"
+@router.message(F.text == "🌍Сменить сервер")
+async def change_server(msg: Message):
+    telegram_id = msg.from_user.id
+    status, _ = await get_user_subscription_status(telegram_id=telegram_id)
+
+    if status in ('no_subscription', 'expired'):
+        await msg.answer(text="🚫 Данный раздел доступен только пользователям с активной подпиской.")
+        return None
+
+    await msg.answer(
+        text="<b>💡 Внимание!</b>\n\n"
+             "<pre>Смена страны подразумевает удаление вашей текущей конфигурации и выдачи новой, соответсвующего стране, которую вы выберете.</pre>\n\n"
+             "🔄После получения новой конфигурации <b>необходимо удалить старую и по инструкции установить новую.</b>\n"
+             "⚙️Инструкцию можете найти в главном меню.\n\n"
+             "<b><u>Выберите страну:</u></b>",
+        reply_markup=await inline_server_change(),
+        parse_mode='HTML'
+    )
+
+
+# ______________________________________________________________________________________________________
+
 
 # Обработчик кнопки "Промокод"
 @router.message(F.text == "🎁 Промокод")
 async def promo_code(msg: Message):
     await msg.answer("🎁 Раздел в разработке.")
+
+
+# ______________________________________________________________________________________________________
+
 
 # Обработчик кнопки "Помощь"
 @router.message(F.text == "🆘 Помощь")
@@ -88,3 +291,6 @@ async def help_section(msg: Message):
         "Если же и после этого у вас остаются вопросы или проблемы, не стесняйтесь обращаться в нашу службу поддержки - мы всегда рады помочь! 💬👍\n\n"
         "Вы всегда можете написать нам с Вашим вопросом: (Аккаунт для поддержки)"
     )
+
+
+# ______________________________________________________________________________________________________
