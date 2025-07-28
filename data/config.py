@@ -1,4 +1,10 @@
-from dotenv import dotenv_values
+from dotenv import load_dotenv
+import os
 
-config_file = dotenv_values('.env')
-admins = 7912298914
+load_dotenv()  # Загружаем переменные окружения из .env
+
+token = os.getenv('token')
+if not token:
+    raise RuntimeError("TOKEN не найден в переменных окружения")
+
+admins = [823524953]
