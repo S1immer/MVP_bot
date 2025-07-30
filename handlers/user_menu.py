@@ -52,16 +52,57 @@ async def show_my_id(msg: Message):
 
 @router.message(Command("tariffs"))
 async def show_tariffs(message: types.Message):
-    await message.answer(text=f"<b>📊 Тарифы:</b>\n\n"
-    "🟢 <b>1 месяц</b> — 199₽ / 349₽ / 549₽ / 949₽\n"
-    "(1 / 2 / 3 / 5 устройств)\n\n"
-    "🔵 <b>3 месяца</b> — 549₽ / 1099₽ / 1649₽ / 2749₽\n"
-    "(1 / 2 / 3 / 5 устройств)\n\n"
-    "🟠 <b>6 месяцев</b> — 1049₽ / 2099₽ / 3149₽ / 5249₽\n"
-    "(1 / 2 / 3 / 5 устройств)\n\n"
-    "🔴 <b>12 месяцев</b> — 1899₽ / 3799₽ / 5749₽ / 6999₽\n"
-    "(1 / 2 / 3 / 5 устройств)\n\n"
-    "<b>🎁 Получайте скидки от 7% до 25% — чем больше выбираете, тем выгоднее!</b>", parse_mode='HTML')
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💸 Оплатить тариф", callback_data="pay_subscribe")],
+        ]
+    )
+
+    text = (
+        f"<b>📊 Тарифы:</b>\n\n"
+        f"🟢 <b>1 месяц</b> — "
+        f"{tariffs_data['month']['1_devices']['price']}₽ / "
+        f"{tariffs_data['month']['2_devices']['price']}₽ / "
+        f"{tariffs_data['month']['3_devices']['price']}₽ / "
+        f"{tariffs_data['month']['5_devices']['price']}₽\n"
+        "(1 / 2 / 3 / 5 устройств)\n\n"
+
+        f"🔵 <b>3 месяца</b> — "
+        f"{tariffs_data['three_months']['1_devices']['price']}₽ / "
+        f"{tariffs_data['three_months']['2_devices']['price']}₽ / "
+        f"{tariffs_data['three_months']['3_devices']['price']}₽ / "
+        f"{tariffs_data['three_months']['5_devices']['price']}₽\n"
+        "(1 / 2 / 3 / 5 устройств)\n\n"
+
+        f"🟠 <b>6 месяцев</b> — "
+        f"{tariffs_data['six_months']['1_devices']['price']}₽ / "
+        f"{tariffs_data['six_months']['2_devices']['price']}₽ / "
+        f"{tariffs_data['six_months']['3_devices']['price']}₽ / "
+        f"{tariffs_data['six_months']['5_devices']['price']}₽\n"
+        "(1 / 2 / 3 / 5 устройств)\n\n"
+
+        f"🔴 <b>12 месяцев</b> — "
+        f"{tariffs_data['year']['1_devices']['price']}₽ / "
+        f"{tariffs_data['year']['2_devices']['price']}₽ / "
+        f"{tariffs_data['year']['3_devices']['price']}₽ / "
+        f"{tariffs_data['year']['5_devices']['price']}₽\n"
+        "(1 / 2 / 3 / 5 устройств)\n\n"
+
+        "<b>🎁 Получайте скидки от 7% до 25% — чем больше выбираете, тем выгоднее!</b>"
+    )
+    await message.answer(text=text, reply_markup=keyboard, parse_mode='HTML')
+
+
+@router.callback_query(F.data == "pay_subscribe")
+async def transition_to_payment(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception as e:
+        logger.info(f"Не удалось удалить кнопку с оплатой под тарифами: {e}")
+
+    await handle_buy_subscription(callback.from_user.id, callback.message, state)
+
 
 
 # Запуск бота
@@ -115,7 +156,7 @@ async def remaining_days(msg: Message):
         try:
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="💳Продлить подписку", callback_data="pay_subscribe")]
+                    [InlineKeyboardButton(text="💳Продлить подписку", callback_data="extend_the_subscription")]
                 ]
             )
 
@@ -153,7 +194,7 @@ async def remaining_days(msg: Message):
 
 
 
-        @router.callback_query(F.data == "pay_subscribe")
+        @router.callback_query(F.data == "extend_the_subscription")
         async def from_profile_to_subscription(callback: CallbackQuery, state: FSMContext):
             await callback.answer()
             await callback.message.delete()
@@ -193,12 +234,21 @@ async def instruction_key(msg: Message, state: FSMContext):
 
 # ______________________________________________________________________________________________________
 
+# Обработчик кнопки "💸 Оплатить подписку"
+# @router.message(F.text == "💸 Оплатить подписку")
+# async def buy_subscription(msg: Message, state: FSMContext):
+
 
 @router.message(F.text == "💸 Оплатить подписку")
 async def buy_subscription(msg: Message, state: FSMContext):
-    user_id = msg.from_user.id
-    status, subscription = await get_user_subscription_status(user_id)
+    await handle_buy_subscription(msg.from_user.id, msg, state)
+    return
+
+
+async def handle_buy_subscription(user_id: int, msg: Message, state: FSMContext):
+
     await state.clear()
+    status, subscription = await get_user_subscription_status(user_id)
 
     if status == 'no_subscription':
         await msg.answer(
@@ -230,6 +280,9 @@ async def buy_subscription(msg: Message, state: FSMContext):
 
         await msg.answer(
             text="<b>✅ У вас уже есть активная подписка.</b>\n\n"
+                 "🔄 Продлить подписку - продление срока подписки с уже установленным количеством устройств в профиле.\n"
+                 "⚙️ Изменить кол-во устройств - смена количества устройств без продления срока подписки,"
+                 "при увеличении кол-ва устройств производится доплата за оставшиеся дни подписки.\n\n"
                  "Что вы хотите сделать?",
             reply_markup=keyboard,
             parse_mode='HTML'
@@ -251,17 +304,18 @@ async def referral_system(msg: Message):
 
 # Обработчик кнопки "Сменить сервер"
 @router.message(F.text == "🌍Сменить сервер")
-async def change_server(msg: Message):
+async def change_server(msg: Message, state: FSMContext):
     telegram_id = msg.from_user.id
+    await state.clear()
     status, _ = await get_user_subscription_status(telegram_id=telegram_id)
 
     if status in ('no_subscription', 'expired'):
         await msg.answer(text="🚫 Данный раздел доступен только пользователям с активной подпиской.")
-        return None
+        return
 
     await msg.answer(
         text="<b>💡 Внимание!</b>\n\n"
-             "<pre>Смена страны подразумевает удаление вашей текущей конфигурации и выдачи новой, соответсвующего стране, которую вы выберете.</pre>\n\n"
+             "<pre>Смена сервера подразумевает удаление вашей текущей конфигурации и выдачи новой, соответствующей стране, которую вы выберете.</pre>\n\n"
              "🔄После получения новой конфигурации <b>необходимо удалить старую и по инструкции установить новую.</b>\n"
              "⚙️Инструкцию можете найти в главном меню.\n\n"
              "<b><u>Выберите страну:</u></b>",
