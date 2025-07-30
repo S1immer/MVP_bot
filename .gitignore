@@ -10,4 +10,9 @@ __pycache__/
 data_servers/servers.py
 database
 
+#logs
 logs/log.txt*
+log.txt
+
+#macos system
+.DS_Store
