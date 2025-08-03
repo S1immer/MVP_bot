@@ -3,7 +3,7 @@ import os
 
 load_dotenv()  # Загружаем переменные окружения из .env
 
-token = os.getenv('token')
+token = os.getenv('TOKEN')
 if not token:
     raise RuntimeError("TOKEN не найден в переменных окружения")
 
