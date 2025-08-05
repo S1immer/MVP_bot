@@ -39,8 +39,8 @@ async def main_menu_keyboard() -> ReplyKeyboardMarkup:
     """Создает основное меню (ReplyKeyboard)."""
     keyboard_layout = [
         [KeyboardButton(text='📆Остаток дней'), KeyboardButton(text='⚙️ Инструкция и 🔑 Ключ')],
-        [KeyboardButton(text='💸 Оплатить подписку'), KeyboardButton(text='🤝 Реферальная система')],
-        [KeyboardButton(text='🌍Сменить сервер'), KeyboardButton(text='🎁 Промокод')],
+        [KeyboardButton(text='💸 Оплатить подписку'), KeyboardButton(text='🌍Сменить сервер')],
+        #KeyboardButton(text='🤝 Реферальная система')], #KeyboardButton(text='🎁 Промокод')],
         [KeyboardButton(text='🆘 Помощь')],
     ]
     return ReplyKeyboardMarkup(keyboard=keyboard_layout, resize_keyboard=True)
@@ -131,11 +131,11 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
 
                     if not get_period or not get_device:
                         await bot.send_message(telegram_id, text="❌ Не указаны параметры тарифа.")
-                        return
+                        return None
 
                     if get_period not in tariffs_data or get_device not in tariffs_data[get_period]:
                         await bot.send_message(telegram_id, text="❌ Некорректные параметры тарифа.")
-                        return
+                        return None
 
 
                     result = await key_generation(telegram_id, period=get_period, devices=get_device)
@@ -181,11 +181,11 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
 
                     if not get_period or not get_device:
                         await bot.send_message(telegram_id, text="❌ Не указаны параметры тарифа. Обратитесь в поддержку!")
-                        return
+                        return None
 
                     if get_period not in tariffs_data or get_device not in tariffs_data[get_period]:
                         await bot.send_message(telegram_id, text="❌ Некорректные параметры тарифа. Обратитесь в поддержку!")
-                        return
+                        return None
 
                     user_data_for_extend = await get_user_data_for_extend(telegram_id)
                     if user_data_for_extend:
@@ -233,12 +233,12 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                         if not get_period or not device_limit:
                             await bot.send_message(telegram_id,
                                                    text="❌ Не указаны параметры тарифа. Обратитесь в поддержку!")
-                            return
+                            return None
 
                         if get_period not in tariffs_data or device_limit not in tariffs_data[get_period]:
                             await bot.send_message(telegram_id,
                                                    text="❌ Некорректные параметры тарифа. Обратитесь в поддержку!")
-                            return
+                            return None
 
                         days = tariffs_data[get_period][device_limit]['days']
 
@@ -290,24 +290,24 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                         if not get_device:
                             await bot.send_message(telegram_id,
                                                    text="❌ Не удалось получить новое количество устройств.")
-                            return
+                            return None
 
                         user_data = await get_user_data_for_extend(telegram_id)
                         if not user_data:
                             await bot.send_message(telegram_id, text="❌ Не удалось получить данные пользователя.")
-                            return
+                            return None
 
                         server_id, client_uuid, ip_limit = user_data
 
                         subscription = await get_date_user(telegram_id)
                         if not subscription:
                             await bot.send_message(telegram_id, text="❌ Подписка не найдена.")
-                            return
+                            return None
 
                         _, deleted_at = subscription
                         if not deleted_at:
                             await bot.send_message(telegram_id, text="❌ Не найдена дата окончания подписки.")
-                            return
+                            return None
 
                         expiry_timestamp = int(deleted_at.timestamp() * 1000)
 
@@ -701,7 +701,7 @@ async def server_change(callback: CallbackQuery):
             await loading_msg.edit_text(
                 text="⚠️ Нет доступных серверов для смены. Попробуйте другую страну."
             )
-            return
+            return None
         print(f'--------- Нашли новый сервер {new_server_id}')
 
     else:
@@ -786,7 +786,7 @@ async def server_change(callback: CallbackQuery):
     # 2. Удаляем пользователя со старого сервера
     # 3. Ищем доступные сервера по country_code
     # 4. Выбираем сервер (скрипт на выбор нового сервера -> получаем новый server_id)
-    # 5. Генерация новой конфигурации (авторизируемся на новый сервер, добавляем клиента с его остаточным сроком подписки и ip_limit)
+    # 5. Генерация новой конфигурации (авторизуемся на новый сервер, добавляем клиента с его остаточным сроком подписки и ip_limit)
     # 6. Обновляем данные в базе (server_id, key)
 
 
@@ -803,6 +803,7 @@ async def server_change(callback: CallbackQuery):
         chat_id=telegram_id,
         text=f"<pre>{link_data}</pre>", parse_mode='HTML'
     )
+    return None
 
 
 
