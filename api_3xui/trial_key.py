@@ -37,7 +37,7 @@ async def create_trial_key(telegram_id: int):
         client_uuid = str(uuid4())
 
         response = await add_user(session, server_id_name, client_uuid, str(telegram_id),
-                                  limit_ip=limit_ip+1, total_gb=0, expiry_time=expiry_timestamp,
+                                  limit_ip=limit_ip+1, total_gb=0, expiry_time=expiry_timestamp, # +1 чтобы на сервере при смене интернета не заблокировался ключ
                                   enable=True, flow="xtls-rprx-vision")
 
 
