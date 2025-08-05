@@ -204,7 +204,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                         telegram_id=telegram_id,
                         server_id_name=server_id,
                         client_uuid=client_uuid,
-                        limit_ip=ip_limit+1,
+                        limit_ip=ip_limit+1, # +1 чтобы на сервере при смене интернета не заблокировался ключ
                         expiry_time=expiry_timestamp
                     )
                     if result_extend:
@@ -266,7 +266,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                             telegram_id=telegram_id,
                             server_id_name=server_id,
                             client_uuid=client_uuid,
-                            limit_ip=ip_limit+1,
+                            limit_ip=ip_limit+1, # +1 чтобы на сервере при смене интернета не заблокировался ключ
                             expiry_time=expiry_timestamp
                         )
 
@@ -605,7 +605,7 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
         await extend_time_key(telegram_id=telegram_id,
                           server_id_name=server_id,
                           client_uuid=client_uuid,
-                          limit_ip=selected_devices+1,
+                          limit_ip=selected_devices+1, # +1 чтобы на сервере при смене интернета не заблокировался ключ
                           expiry_time=expiry_timestamp
         )
         dell = current_user_limit_ip - selected_devices
