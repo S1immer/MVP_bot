@@ -35,7 +35,7 @@ async def set_commands():
 
 # ______________________________________________________________________________________________________
 @router.message(Command("pay"))
-async def pay_sub(msg: Message, state):
+async def pay_sub(msg: Message, state: FSMContext):
     await buy_subscription(msg, state)
 
 
