@@ -22,10 +22,10 @@ router = Router()
 
 # Устанавливаем команды для бота
 commands = [
-    BotCommand(command="/start", description="🏠Главное меню"),
-    BotCommand(command="/tariffs", description="📊Тарифы"),
-    BotCommand(command="/pay", description="💳Оплатить подписку"),
-    BotCommand(command="/my_id", description="Мой 🆔"),
+    BotCommand(command="/start", description="🏠 Главное меню"),
+    BotCommand(command="/tariffs", description="📊 Тарифы"),
+    BotCommand(command="/pay", description="💳 Оплатить подписку"),
+    BotCommand(command="/my_id", description="🆔 Профиля"),
     BotCommand(command="/support", description="🆘 Помощь"),
 ]
 
