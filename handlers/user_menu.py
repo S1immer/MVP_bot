@@ -156,7 +156,7 @@ async def remaining_days(msg: Message):
         try:
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="💳Продлить подписку", callback_data="extend_the_subscription")]
+                    [InlineKeyboardButton(text="💳Продлить подписку", callback_data="pay_subscribe")]
                 ]
             )
 
