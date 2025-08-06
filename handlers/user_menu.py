@@ -93,6 +93,13 @@ async def show_tariffs(message: types.Message):
     await message.answer(text=text, reply_markup=keyboard, parse_mode='HTML')
 
 
+@router.callback_query(F.data == "show_tariffs")
+async def callback_show_tariffs(callback: types.CallbackQuery):
+    await show_tariffs(callback.message)
+    await callback.answer()
+
+
+
 @router.callback_query(F.data == "pay_subscribe")
 async def transition_to_payment(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
