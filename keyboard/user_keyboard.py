@@ -669,143 +669,202 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
 
 
 # ============================================
-# 🔹 Обработчики для смены стараны
+# 🔹 Обработчики для смены страны
 # ============================================
 
 @router.callback_query(F.data.startswith("serverchange_"))
 async def server_change(callback: CallbackQuery):
+    """
+    Смена сервера
+    # 1. Получаем server_id и client_uuid пользователя из БД
+    # 2. Ищем доступные сервера по country_code
+    # 3. Выбираем сервер (скрипт на выбор нового сервера -> получаем новый server_id)
+    # 4. Генерация новой конфигурации (авторизуемся на новый сервер, добавляем клиента с его остаточным сроком подписки и ip_limit)
+    # 5. Отправляем конфигурацию (отправляем новый key из бд пользователю)
+    # 6. Если новый ключ на новом сервере созданы и ключ отправлен пользователю, удаляем старого пользователя со старого сервера
+    # 7. Обновляем данные в базе (server_id, key)
+    """
     country_code = callback.data.split("serverchange_")[1]
     telegram_id = callback.from_user.id
 
-    await callback.answer()
+    # 1.
+    client_data = await get_data_for_delet_client(telegram_id)
+    if not client_data:
+        await callback.answer(
+            text="⚠️ Для выполнения смены сервера не хватает данных в нашей базе.\n"
+                 "❗️ Рекомендуем обратиться в поддержку для уточнения информации.",
+            show_alert=True
+        )
+        return None
+
+    old_server_id, old_client_uuid, ip_limit = client_data
+
+    # 2.
+    # 3.
+    new_server_id = await get_least_loaded_server_by_code(
+        name_country=country_code,
+        current_server_id=old_server_id
+    )
+    if new_server_id is None:
+        await callback.answer(
+            text="⚠️ Нет доступных серверов для смены. Попробуйте другую страну.",
+            show_alert=True
+        )
+        return None
+
     await callback.message.delete()
 
     loading_msg = await callback.bot.send_message(
         chat_id=telegram_id,
         text="⏳ Смена сервера..."
     )
-    # ____________________________________________________
-    # скрипты на смену сервера
 
-    # 1. Получаем server_id и client_uuid пользователя из БД
-    client_data = await get_data_for_delet_client(telegram_id)
+    new_session_3x = None
+    old_session_3x = None
 
-    if client_data:
-        server_id, client_uuid, ip_limit = client_data
-        old_server_id = server_id
-        print(f'--------- Получили данные пользователя из бд')
+    try:
+        # 4.
+        datetime_user = await get_date_user(telegram_id)
 
-        new_server_id = await get_least_loaded_server_by_code(name_country=country_code,
-                                                              current_server_id=old_server_id)
-        if new_server_id is None:
-            await loading_msg.edit_text(
-                text="⚠️ Нет доступных серверов для смены. Попробуйте другую страну."
+        if not datetime_user:
+            await loading_msg.delete()
+            await callback.answer(
+                text="⚠️ Не удалось получить данные о вашей подписке или дата подписки уже истекла.",
+                show_alert=False
             )
             return None
-        print(f'--------- Нашли новый сервер {new_server_id}')
 
-    else:
-        await callback.message.bot.send_message(
-            chat_id=telegram_id,
-            text="Не достаточно данных в базе данных или совсем нет"
+        _, deleted_at = datetime_user
+        new_session_3x = await login_with_credentials(server_name=new_server_id)
+
+        if not new_session_3x:
+            await loading_msg.delete()
+            await callback.answer(
+                text="⚠️ Не удалось авторизоваться на новом сервере, попробуйте еще раз.\n",
+                show_alert=False
+            )
+            await notify_admin(f"⚠️ При смене сервера не удалось авторизоваться на сервер - {new_server_id}\n"
+                               f"⚠️ Нужно проверить работоспособность сервера!")
+            return None
+
+        new_client_uuid = str(uuid.uuid4())
+        deleted_at_unix_ms = int(deleted_at.timestamp() * 1000)
+
+        await add_user(
+            session=new_session_3x,
+            server_id_name=new_server_id,
+            client_uuid=new_client_uuid,
+            telegram_id=str(telegram_id),
+            limit_ip=ip_limit,
+            total_gb=0,
+            expiry_time=deleted_at_unix_ms,
+            enable=True,
+            flow='xtls-rprx-vision'
+        )
+
+        response = await get_clients(new_session_3x, new_server_id)
+        if 'obj' not in response or len(response['obj']) == 0:
+            await loading_msg.delete()
+            await callback.answer(
+                text="⚠️ Не удалось получить список клиентов на новом сервере\n"
+                     "Обратитесь в поддержку!",
+                show_alert=False
+            )
+            return None
+
+        link_data = await link(new_session_3x, new_server_id, new_client_uuid, str(telegram_id))
+        if not link_data:
+            await loading_msg.delete()
+            await callback.answer(text=f"⚠️ Не удалось выдать конфигурацию подключения, обратитесь в поддержку для ее получения!")
+            await notify_admin(text=f"При смене сервера c {old_server_id} на - {new_server_id}"
+                                    f"пользователю - {telegram_id} не выдали конфигурацию.")
+            return None
+        else:
+            await save_key_to_database(
+                telegram_id=telegram_id,
+                client_uuid=new_client_uuid,
+                active_key=link_data,
+                ip_limit=ip_limit,
+                server_id=new_server_id
+            )
+
+            await add_user_db_on_server(
+                quantity_users=ip_limit,
+                server_name=new_server_id,
+                telegram_id=telegram_id
+            )
+
+        # 5.
+        try:
+            await callback.bot.send_message(
+                chat_id=telegram_id,
+                text=f"🔑 Конфигурация:"
+            )
+            await callback.bot.send_message(
+                chat_id=telegram_id,
+                text=f"<pre>{link_data}</pre>",
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            await loading_msg.delete()
+            await notify_admin(text=f"⚠️ Не удалось отправить новую конфигурацию (ключ) пользователю - {telegram_id}, ошибка: {e}")
+            await callback.answer(
+                text="❌ Не удалось отправить новую конфигурацию для подключения. Смена сервера отменена.",
+                show_alert=False
+            )
+            return None
+
+        # 6. Если отправка успешна — только тогда удаляем старого пользователя
+
+        # 7.
+        old_session_3x = await login_with_credentials(server_name=old_server_id)
+        if not old_session_3x:
+            await notify_admin(text=f"✅ Пользователь успешно получил новую конфигурацию, при смене сервера."
+                                    f"⚠️ При смене сервера, пользователь - {telegram_id} не был\n"
+                                    f"удален со старого сервера - {old_server_id}\n"
+                                    f"⚠️ Нужно удалить в веб-панели пользователя со старого сервера - {old_server_id}\n"
+                                    f"⚠️ Количество устройств пользователя на старом сервере - {ip_limit}"
+                                    f"⚠️ Удалить его количество устройств в базе данных, таблица traffic_data, столбец quantity_users")
+        else:
+            await delete_client(
+                session=old_session_3x,
+                server_id_name=old_server_id,
+                client_id=old_client_uuid
+            )
+
+            await delete_user_db_on_server(
+                quantity_users=ip_limit,
+                server_name=old_server_id,
+                telegram_id=telegram_id
+            )
+
+        await notify_admin(text=f"✅ Пользователь - {telegram_id} "
+                                f"успешно сменил сервер с {old_server_id} на {new_server_id}")
+
+    except Exception as e:
+        await notify_admin(f"⚠️ Пользователь: {telegram_id}\n"
+                           f"⚠️ Старый сервер: {old_server_id}\n"
+                           f"⚠️ Новый сервер: {new_server_id}\n"
+                           f"⚠️ Ошибка при смене сервера: {e}\n"
+                           )
+        await callback.answer(
+            text="⚠️ Произошла ошибка при смене сервера. Попробуйте еще раз или позже.",
+            show_alert=False
         )
         return None
 
-    # 2. Удаляем пользователя со старого сервера
-    old_session_3x = await login_with_credentials(server_name=old_server_id)
-    print(f'--------- Авторизовались на старый сервер')
+    finally:
+        # Удаляем сообщение загрузки в любом случае
+        await loading_msg.delete()
 
-    await delete_client(session=old_session_3x,
-                        server_id_name=old_server_id,
-                        client_id=client_uuid)
-    print(f'--------- Удалили пользователя со старого сервера')
+        # Закрываем индикатор на кнопке
+        await callback.answer()
+        if 'new_session_3x' in locals() and new_session_3x:
+            await new_session_3x.close()
 
-    await old_session_3x.close()
-    print(f'--------- Закрыли старую сессию')
-
-    await delete_user_db_on_server(quantity_users=ip_limit,
-                                   server_name=old_server_id,
-                                   telegram_id=telegram_id)
-    print(f'--------- Удалили запись о количестве пользователей на сервере')
-
-    # 3. Ищем доступные сервера по country_code
-
-
-    # 4. Генерация новой конфигурации (авторизируемся на новый сервер, добавляем клиента с его остаточным сроком подписки и ip_limit)
-    datetime_user = await get_date_user(telegram_id)
-    if datetime_user:
-        _, deleted_at = datetime_user
-        print(f'--------- Получили остаток дней подписки пользователя')
-    else:
-        return None
-
-    new_session_3x = await login_with_credentials(server_name=new_server_id)
-    print(f'--------- Авторизовались на новый сервер')
-    new_client_uuid = str(uuid.uuid4())
-
-    deleted_at_unix_ms = int(deleted_at.timestamp() * 1000)
-
-    await add_user(session=new_session_3x,
-                   server_id_name=new_server_id,
-                   client_uuid=new_client_uuid,
-                   telegram_id=str(telegram_id),
-                   limit_ip=ip_limit,
-                   total_gb=0,
-                   expiry_time= deleted_at_unix_ms,
-                   enable=True,
-                   flow='xtls-rprx-vision'
-    )
-    print(f'--------- Добавили пользователя на новый сервер')
-    response = await get_clients(new_session_3x, new_server_id)
-    print(f'--------- Получили клиентов с сервера')
-
-    if 'obj' not in response or len(response['obj']) == 0:
-        return None
-
-    link_data = await link(
-        new_session_3x,
-        new_server_id,
-        new_client_uuid,
-        str(telegram_id)
-    )
-    print(f'--------- Получили новый ключ - {link_data}')
-    await save_key_to_database(telegram_id=telegram_id,
-                               client_uuid=new_client_uuid,
-                               active_key=link_data,
-                               ip_limit=ip_limit,
-                               server_id=new_server_id
-                               )
-    await add_user_db_on_server(quantity_users=ip_limit,
-                                server_name=new_server_id,
-                                telegram_id=telegram_id)
-    await new_session_3x.close()
-
-
-
-    # 1. Получаем server_id и client_uuid пользователя из БД
-    # 2. Удаляем пользователя со старого сервера
-    # 3. Ищем доступные сервера по country_code
-    # 4. Выбираем сервер (скрипт на выбор нового сервера -> получаем новый server_id)
-    # 5. Генерация новой конфигурации (авторизуемся на новый сервер, добавляем клиента с его остаточным сроком подписки и ip_limit)
-    # 6. Обновляем данные в базе (server_id, key)
-
-
-    # ____________________________________________________
-    await loading_msg.delete()
-
-    # 7. Отправляем конфигурацию (отправляем новый key из бд пользователю)
-
-    await callback.message.bot.send_message(
-        chat_id=telegram_id,
-        text=f"🔑 Конфигурация:"
-    )
-    await callback.message.bot.send_message(
-        chat_id=telegram_id,
-        text=f"<pre>{link_data}</pre>", parse_mode='HTML'
-    )
+        if 'old_session_3x' in locals() and old_session_3x:
+            await old_session_3x.close()
     return None
-
-
 
 
 # Регистрация обработчика callback-запроса для тестового периода
