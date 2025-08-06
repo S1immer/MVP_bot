@@ -5,7 +5,7 @@ from aiogram.filters.state import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from os import path
-from data.louder import bot
+from data.loader import bot
 
 from database.functions_db_async import *
 
