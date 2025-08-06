@@ -149,7 +149,7 @@ async def remaining_days(msg: Message):
     if deleted_at is None:
         await msg.answer(text=f'👤 <b>Профиль:</b> {name_client}\n'
                               f'____________________\n\n\n'
-                              f'❌ У вас нет активной подписки.', parse_mode='HTML')
+                              f'❌ У вас нет активной подписки.', parse_mode='HTML', reply_markup=keyboard)
 
 
     else:
