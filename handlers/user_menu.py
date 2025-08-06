@@ -328,9 +328,9 @@ async def change_server(msg: Message, state: FSMContext):
 
 
 # Обработчик кнопки "Промокод"
-@router.message(F.text == "🎁 Промокод")
-async def promo_code(msg: Message):
-    await msg.answer("🎁 Раздел в разработке.")
+# @router.message(F.text == "🎁 Промокод")
+# async def promo_code(msg: Message):
+#     await msg.answer("🎁 Раздел в разработке.")
 
 
 # ______________________________________________________________________________________________________
