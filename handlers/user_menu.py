@@ -115,6 +115,10 @@ async def start_func(msg: Message):
         await register_user(user_id)
         print(f"Пользователь с ID {user_id} зарегистрирован.")
 
+        keyboard_show_tariffs = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🗂️ Выбрать тариф", callback_data="show_tariffs"), (InlineKeyboardButton(text="🎁 Тестовый период", callback_data="trial"))]])
+
         await msg.answer_photo(
             photo=types.FSInputFile(path.join('images', 'logo.jpg')),
             caption=(
