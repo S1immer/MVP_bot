@@ -115,7 +115,7 @@ async def choosing_a_device() -> InlineKeyboardMarkup:
 
 async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, path: str, state: FSMContext, **kwargs):
     """
-    Универсальная функция автопроверки платежа yookassa.
+    Универсальная функция авто-проверки платежа yookassa.,
     path - строка: "no_subscription", "expired", "active"
     kwargs - дополнительные параметры, нужные для логики каждого пути
     """
@@ -594,8 +594,7 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
         return
 
     if selected_devices == current_user_limit_ip:
-        await callback.message.delete()
-        await callback.message.answer("ℹ️ У вас уже выбрано это количество устройств.")
+        await callback.answer(text="ℹ️ У вас уже выбрано это количество устройств.", show_alert=True)
         return
 
     if selected_devices < current_user_limit_ip:
@@ -646,10 +645,11 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
              f"📱 Было: {current_user_limit_ip} → Будет: {selected_devices}\n"
              f"🕒 Осталось дней подписки: {days_remaining}\n"
              f"➕ Добавляем устройств: {selected_devices - current_user_limit_ip}\n"
-             f"🧮 Рассчёт: {days_remaining} * {selected_devices - current_user_limit_ip} * 6\n\n"
+             f"🧮 Рассчёт доплаты: {days_remaining} * {selected_devices - current_user_limit_ip} * 6 ₽\n\n"
              f"💰 Доплата: {price}₽\n\n"
-             f"❕Изменение рассчитывается <b>по 6 ₽ за устройство в день</b>.\n"
-             f"Срок подписки не меняется.",
+             f"❕ Стоимость — 6 ₽ за устройство в день.\n"
+             f"❕ Доплата считается только за оставшиеся дни подписки.\n"
+             f"❕ Срок подписки не изменяется.",
         reply_markup=keyboard,
         parse_mode="HTML"
     )
