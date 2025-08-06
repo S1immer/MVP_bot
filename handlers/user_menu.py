@@ -145,6 +145,12 @@ async def remaining_days(msg: Message):
     deleted_at = await check_date_subscribe(telegram_id)
     limit_ip = await get_limit_device(telegram_id)
 
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💸 Оплатить тариф", callback_data="pay_subscribe")],
+        ]
+    )
+
 
     if deleted_at is None:
         await msg.answer(text=f'👤 <b>Профиль:</b> {name_client}\n'
