@@ -115,7 +115,7 @@ async def transition_to_payment(callback: CallbackQuery, state: FSMContext):
 # Запуск бота
 @router.message(Command('start'))
 async def start_func(msg: Message):
-    user_id = msg.from_user.id
+    telegram_id = msg.from_user.id
 
     # Проверка регистрации пользователя
     if not await check_user_registered(telegram_id):
