@@ -118,9 +118,9 @@ async def start_func(msg: Message):
     user_id = msg.from_user.id
 
     # Проверка регистрации пользователя
-    if not await check_user_registered(user_id):
-        await register_user(user_id)
-        print(f"Пользователь с ID {user_id} зарегистрирован.")
+    if not await check_user_registered(telegram_id):
+        await register_user(telegram_id)
+        print(f"Пользователь с telegram_id {telegram_id} зарегистрирован.")
 
         keyboard_show_tariffs = InlineKeyboardMarkup(
         inline_keyboard=[
