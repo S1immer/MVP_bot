@@ -47,7 +47,7 @@ async def create_trial_key(telegram_id: int):
 
         else:
             await notify_admin(f"Ошибка создания тестового ключа для {telegram_id}")
-            logger.warning(f"Ошибка создания тестового ключа для {telegram_id}")
+            logger.error(f"Ошибка создания тестового ключа для {telegram_id}")
             return None
     except Exception as e:
         logger.error(f"Ошибка создания тестового ключа для {telegram_id}: {e}")
