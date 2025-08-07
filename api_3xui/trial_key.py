@@ -42,7 +42,6 @@ async def create_trial_key(telegram_id: int):
 
         if response.get("success"):
             connect_link = await link(session, server_id_name, client_uuid, str(telegram_id))
-            print(connect_link)
 
             return connect_link, client_uuid, limit_ip, server_id_name, expiry_time
 
