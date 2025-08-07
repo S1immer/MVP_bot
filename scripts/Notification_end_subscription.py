@@ -4,7 +4,7 @@ from data.loader import bot
 
 from database.DB_CONN_async import Session_db
 from database.models_sql_async import Keys
-from database.functions_db_async import get_data_for_delet_client, delete_user_db_on_server, delet_user_sub_db
+from database.functions_db_async import get_data_for_delet_client, delete_user_db_on_server, delete_user_sub_db
 
 from logs.admin_notify import notify_admin
 from logs.logging_config import logger
