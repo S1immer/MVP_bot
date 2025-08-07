@@ -1,4 +1,3 @@
-# import asyncio
 from api_3xui.authorize import login_with_credentials
 
 from database.functions_db_async import get_least_loaded_server
