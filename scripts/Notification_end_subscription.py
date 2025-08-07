@@ -91,7 +91,7 @@ async def check_and_notify_expired_subscriptions():
                                 await delete_user_db_on_server(quantity_users=ip_limit,
                                                                server_name=server_id,
                                                                telegram_id=telegram_id)
-                                await delet_user_sub_db(telegram_id)
+                                await delete_user_sub_db(telegram_id)
 
                                 await session_3x_ui.close()
                                 await send_message_to_user(telegram_id,
