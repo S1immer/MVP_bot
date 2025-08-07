@@ -44,9 +44,6 @@ async def create_trial_key(telegram_id: int):
             connect_link = await link(session, server_id_name, client_uuid, str(telegram_id))
             print(connect_link)
 
-            # await save_key_to_database(telegram_id=telegram_id, client_uuid=client_uuid,
-            #                            active_key=connect_link, ip_limit=limit_ip, server_id=server_id_name, expiry_time=expiry_time)
-
             return connect_link, client_uuid, limit_ip, server_id_name, expiry_time
 
         else:
