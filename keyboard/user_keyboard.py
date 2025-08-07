@@ -875,36 +875,60 @@ async def trial_button_callback_handler(query: CallbackQuery):
 
 
 async def trial_button_callback(query: CallbackQuery):
+    telegram_id = query.from_user.id
+    server_id_name = None
     try:
-        await query.message.delete()
+        trial_used = await check_used_trial_period(telegram_id=telegram_id)
+        if trial_used:
+            await query.answer(text="❗Вы уже использовали пробный период.", show_alert=True)
+            return None
 
-        telegram_id = query.from_user.id
+        sub_status, _ = await get_user_subscription_status(telegram_id=telegram_id)
+        if sub_status != "no_subscription":
+            await query.answer(text="❗Пробный период доступен только при отсутствии подписки.", show_alert=True)
+            return None
+
         key_data = await create_trial_key(telegram_id)
 
-        if key_data:
-            connect_link, client_uuid, limit_ip, server_id_name, expiry_time = key_data
+        if not key_data:
+            await query.bot.send_message(
+                chat_id=telegram_id,
+                text="⚠️ Не удалось сформировать тестовый ключ. Обратитесь в поддержку!",
+                reply_markup=await main_menu_keyboard()
+            )
+            return None
 
-            await save_key_to_database(telegram_id=telegram_id,
-                                       client_uuid=client_uuid,
-                                       active_key=connect_link,
-                                       ip_limit=limit_ip,
-                                       server_id=server_id_name,
-                                       expiry_time=expiry_time
-                                       )
-            await add_user_db_on_server(limit_ip, server_id_name, telegram_id)
+        connect_link, client_uuid, limit_ip, server_id_name, expiry_time = key_data
 
-            # Отправка сообщения пользователю
-            await query.answer(text="⏳Создание ключа...")
-            await query.bot.send_message(chat_id=telegram_id, text="🔑Тестовый ключ: 👇🏻")
-            await query.bot.send_message(chat_id=telegram_id, text=f"<pre>{connect_link}</pre>", reply_markup=await main_menu_keyboard(), parse_mode="HTML")
-            await query.bot.send_message(chat_id=telegram_id, text="Выберите устройство, на которое планируете установить ключ:", reply_markup=await choosing_a_device())
+        await save_key_to_database(telegram_id=telegram_id,
+                                    client_uuid=client_uuid,
+                                    active_key=connect_link,
+                                    ip_limit=limit_ip,
+                                    server_id=server_id_name,
+                                    expiry_time=expiry_time
+                                    )
 
-        else:
-            await query.answer(text="Не удалось сформировать тестовый ключ. Обратитесь в поддержку!", reply_markup=await main_menu_keyboard())
+        await add_user_db_on_server(limit_ip, server_id_name, telegram_id)
+
+        await query.answer(text="⏳Создание ключа...")
+        await query.bot.send_message(chat_id=telegram_id, text="🔑Тестовый ключ: 👇🏻")
+
+        await query.bot.send_message(chat_id=telegram_id,
+                                     text=f"<pre>{connect_link}</pre>",
+                                     reply_markup=await main_menu_keyboard(),
+                                     parse_mode="HTML")
+
+        await query.bot.send_message(chat_id=telegram_id,
+                                     text="Выберите устройство, на которое планируете установить ключ:",
+                                     reply_markup=await choosing_a_device()
+                                     )
+
+        await add_user_trial_period(telegram_id=telegram_id)
+
 
     except Exception as e:
-        print(f"Ошибка в trial_button_callback: {e}")
-        await query.bot.send_message(chat_id=query.from_user.id, text="⚠️ Ошибка при создании тестового ключа. Обратитесь в поддержку!", reply_markup=await main_menu_keyboard())
+        logger.error(f"Ошибка в trial_button_callback: {e}\n telegram_id: {telegram_id}\n server_id: {server_id_name}")
+        await query.bot.send_message(chat_id=telegram_id, text="⚠️ Ошибка при создании тестового ключа. Обратитесь в поддержку!", reply_markup=await main_menu_keyboard())
 
 
 
