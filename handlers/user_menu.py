@@ -210,13 +210,6 @@ async def remaining_days(msg: Message):
             await msg.answer("Произошла ошибка при обработке запроса.")
 
 
-
-        @router.callback_query(F.data == "extend_the_subscription")
-        async def from_profile_to_subscription(callback: CallbackQuery, state: FSMContext):
-            await callback.answer()
-            await callback.message.delete()
-            await buy_subscription(callback.message, state)
-
 # ______________________________________________________________________________________________________
 
 
