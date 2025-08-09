@@ -136,6 +136,8 @@ async def start_func(msg: Message):
             ), parse_mode="MarkdownV2",
             reply_markup=keyboard_show_tariffs
         )
+        keyboard = await main_menu_keyboard()
+        await msg.answer(text="Выберите действие в меню: 👇🏼", reply_markup=keyboard)
     else:
         # Если пользователь уже зарегистрирован, вызвать функцию remaining_days
         await remaining_days(msg)
