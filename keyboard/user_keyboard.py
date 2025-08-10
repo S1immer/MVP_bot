@@ -1003,7 +1003,7 @@ async def show_instruction(callback_query: CallbackQuery):
             await callback_query.answer()
 
     except Exception as e:
-        print(f"Ошибка в show_instruction: {e}")
+        logger.error(f"Ошибка в show_instruction: {e}")
         await callback_query.message.answer("⚠️ Ошибка при загрузке инструкции.")
 
 
