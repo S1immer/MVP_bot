@@ -17,7 +17,7 @@ payment/yookassa/config_yoo.py
 
 #logs
 logs/log.txt*
-log.txt
+logs.log.txt
 
 #macos system
 .DS_Store
