@@ -924,7 +924,7 @@ async def trial_button_callback(query: CallbackQuery):
         await add_user_db_on_server(limit_ip, server_id_name, telegram_id)
 
         await query.answer(text="⏳Создание ключа...")
-        await query.bot.send_message(chat_id=telegram_id, text="🔑Тестовый ключ: 👇🏻")
+        await query.bot.send_message(chat_id=telegram_id, text="🔑Тестовая конфигурация: 👇🏻")
 
         await query.bot.send_message(chat_id=telegram_id,
                                      text=f"<pre>{connect_link}</pre>",
