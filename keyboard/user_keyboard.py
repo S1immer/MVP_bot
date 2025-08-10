@@ -1022,7 +1022,7 @@ async def return_to_instruction_choice_callback(query: CallbackQuery):
         await query.answer()
 
     except Exception as e:
-        print(f"Ошибка в return_to_instruction_choice_callback: {e}")
+        logger.error(f"Ошибка в return_to_instruction_choice_callback: {e}")
         await query.answer("⚠️ Ошибка при возврате к выбору инструкции.")
 
 
