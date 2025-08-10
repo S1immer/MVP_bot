@@ -1,5 +1,5 @@
 import asyncio
-from yookassa_function import create_payment, check_payment_status
+from payment.yookassa.yookassa_function import check_payment_status
 
 
 async def chek():
