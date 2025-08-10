@@ -932,7 +932,7 @@ async def trial_button_callback(query: CallbackQuery):
                                      parse_mode="HTML")
 
         await query.bot.send_message(chat_id=telegram_id,
-                                     text="Выберите устройство, на которое планируете установить ключ:",
+                                     text="Выберите устройство, на которое планируете установить конфигурацию:",
                                      reply_markup=await choosing_a_device()
                                      )
 
