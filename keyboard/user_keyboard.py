@@ -15,7 +15,7 @@ from api_3xui.trial_key import create_trial_key
 
 from handlers.states import SubscriptionState
 
-from payment.yookassa_function import  create_payment, check_payment_status
+from payment.yookassa.yookassa_function import  create_payment, check_payment_status
 
 from data_servers.tariffs import tariffs_data
 
