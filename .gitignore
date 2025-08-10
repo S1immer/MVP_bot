@@ -10,6 +10,11 @@ __pycache__/
 data_servers/servers.py
 database
 
+
+#payment
+payment/yookassa/config_yoo.py
+
+
 #logs
 logs/log.txt*
 log.txt
