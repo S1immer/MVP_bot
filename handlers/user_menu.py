@@ -140,7 +140,8 @@ async def start_func(msg: Message):
             reply_markup=keyboard_show_tariffs
         )
         keyboard = await main_menu_keyboard()
-        await msg.answer(text="✨ Воспользуйтесь бесплатным тестовым периодом или выберите нужный тариф под себя!👆🏻", reply_markup=keyboard)
+        await msg.answer(text="✨ Воспользуйтесь бесплатным тестовым периодом или выберите нужный тариф под себя!👆🏻",
+                         reply_markup=keyboard)
     else:
         # Если пользователь уже зарегистрирован, вызвать функцию remaining_days
         await remaining_days(msg)
