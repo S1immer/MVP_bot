@@ -889,7 +889,9 @@ async def trial_button_callback(query: CallbackQuery):
     try:
         trial_used = await check_used_trial_period(telegram_id=telegram_id)
         if trial_used:
-            await query.answer(text="❗Вы уже использовали пробный период.", show_alert=True)
+            await query.answer(text="❗Вы уже использовали пробный период.",
+                               replay_markup=await main_menu_keyboard(),
+                               show_alert=True)
             return None
 
         sub_status, _ = await get_user_subscription_status(telegram_id=telegram_id)
