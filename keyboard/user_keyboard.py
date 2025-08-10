@@ -1012,7 +1012,7 @@ async def return_to_instruction_choice_callback(query: CallbackQuery):
     try:
         keyboard = await choosing_a_device()
         if keyboard is None:
-            await query.answer("⚠️ Не удалось загрузить список инструкций.")
+            await query.answer("⚠️ Не удалось загрузить список инструкций. Попробуйте снова.")
             return
 
         await query.message.edit_text(
