@@ -1,5 +1,6 @@
 import asyncio
-from yookassa_function import create_payment, check_payment_status
+from payment.yookassa.yookassa_function import create_payment
+
 
 async def main():
     user_id = 12345
