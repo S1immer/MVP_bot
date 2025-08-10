@@ -63,6 +63,15 @@ async def inline_server_change() -> InlineKeyboardMarkup:
     )
 
 
+async def choice_of_payment_system() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💳 ЮКасса", callback_data='yookassa')],
+            [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data='telegram_stars')]
+        ]
+    )
+
+
 async def inline_price() -> InlineKeyboardMarkup:
     """Создает инлайн-кнопки с тарифами."""
     return InlineKeyboardMarkup(
