@@ -894,7 +894,9 @@ async def trial_button_callback(query: CallbackQuery):
 
         sub_status, _ = await get_user_subscription_status(telegram_id=telegram_id)
         if sub_status != "no_subscription":
-            await query.answer(text="❗Пробный период доступен только при отсутствии подписки.", show_alert=True)
+            await query.answer(text="❗Пробный период доступен только при отсутствии подписки.",
+                               reply_markup=await main_menu_keyboard(),
+                               show_alert=True)
             return None
 
         key_data = await create_trial_key(telegram_id)
