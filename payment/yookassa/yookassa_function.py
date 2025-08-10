@@ -1,6 +1,6 @@
 from uuid import uuid4
 from yookassa import Payment
-from payment.config_yoo import RETURN_URL, config_id, config_secret_key
+from payment.yookassa.config_yoo import RETURN_URL
 
 
 async def create_payment(user_id, tariff_date, price, quantity_devices):
