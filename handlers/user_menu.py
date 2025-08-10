@@ -124,7 +124,10 @@ async def start_func(msg: Message):
 
         keyboard_show_tariffs = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🗂️ Выбрать тариф", callback_data="show_tariffs"), (InlineKeyboardButton(text="🎁 Тестовый период", callback_data="trial"))]])
+            [InlineKeyboardButton(text="🎁 Тестовый период", callback_data="trial")],
+            [InlineKeyboardButton(text="🗂️ Выбрать тариф", callback_data="show_tariffs")]
+        ]
+        )
 
         await msg.answer_photo(
             photo=types.FSInputFile(path.join('images', 'logo.jpg')),
