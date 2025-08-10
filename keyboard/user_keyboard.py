@@ -937,7 +937,9 @@ async def trial_button_callback(query: CallbackQuery):
 
     except Exception as e:
         logger.error(f"Ошибка в trial_button_callback: {e}\n telegram_id: {telegram_id}\n server_id: {server_id_name}")
-        await query.bot.send_message(chat_id=telegram_id, text="⚠️ Ошибка при создании тестового ключа. Обратитесь в поддержку!", reply_markup=await main_menu_keyboard())
+        await query.bot.send_message(chat_id=telegram_id,
+                                     text="⚠️ Ошибка при создании тестового ключа. Обратитесь в поддержку!",
+                                     reply_markup=await main_menu_keyboard())
 
 
 
