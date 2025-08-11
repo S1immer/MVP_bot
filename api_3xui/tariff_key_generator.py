@@ -36,7 +36,7 @@ async def key_generation(telegram_id: int, period: str, devices: str):
         # Далее ваша логика добавления пользователя и получения ключа
         client_uuid = str(uuid4())
 
-        tariff_data = tariffs_data[period][devices]
+        tariff_data = tariffs_data[period][f"{devices}_devices"]
         tariff_days = tariff_data['days']
         device = tariff_data['device_limit']
 
