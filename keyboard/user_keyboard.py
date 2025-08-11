@@ -160,7 +160,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                         telegram_id,
                         text=f"✅ Оплата успешно прошла!\n"
                              f"✨ Подписка активирована на {tariff_days} дней, устройств: {device}.\n\n"
-                             f"🔑 Ваш ключ:\n", parse_mode="HTML"
+                             f"🔑 Ваша конфигурация:\n", parse_mode="HTML"
                     )
                     await bot.send_message(telegram_id, text=f"<pre>{link_data}</pre>", parse_mode="HTML")
                     await bot.send_message(telegram_id, text="📌 Выберите устройство, на которое планируете установить ключ:",
