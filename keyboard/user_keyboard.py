@@ -165,8 +165,8 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                     await bot.send_message(telegram_id, text=f"<pre>{link_data}</pre>", parse_mode="HTML")
                     await bot.send_message(telegram_id, text="📌 Выберите устройство, на которое планируете установить ключ:",
                                            reply_markup=await choosing_a_device())
-                    await bot.send_message(telegram_id, text=f"⚠️<b>Не делитесь ключом.</b> При использовании на устройствах сверх лимита подписки "
-                             f"он автоматически блокируется системой!\n", parse_mode='HTML')
+                    await bot.send_message(telegram_id, text=f"⚠️<b>Не делитесь конфигурацией.</b> При использовании на устройствах сверх лимита подписки "
+                             f"она автоматически блокируется системой!\n", parse_mode='HTML')
 
                     expiry_time_tariff = datetime.now() + timedelta(days=tariff_days)
                     await save_key_to_database(telegram_id=telegram_id,
