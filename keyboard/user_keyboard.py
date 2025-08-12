@@ -599,7 +599,8 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
     created_at, deleted_at = subscription
 
     if not deleted_at:
-        await callback.message.answer("❌ Не найдена дата окончания подписки.")
+        await callback.message.answer("❌ Не найдена дата окончания подписки в базе данных.\n"
+                                      "Обратитесь в поддержку!")
         return
 
     if selected_devices == current_user_limit_ip:
