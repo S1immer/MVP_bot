@@ -16,7 +16,7 @@ from logs.logging_config import logger
 
 
 
-async def key_generation(telegram_id: int, period: str, devices: str):
+async def key_generation(telegram_id: int, period: str, devices: int):
     """"
     :param telegram_id - telegram_id пользователя
     :param period - пример 'month', 'three_months'
