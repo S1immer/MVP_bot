@@ -426,7 +426,7 @@ async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
             payment_id=payment_id,
             path="no_subscription",
             days=days,
-            device_limit=device_limit,
+            device_limit=limit_ip_int,
             state=state
         )
     )
