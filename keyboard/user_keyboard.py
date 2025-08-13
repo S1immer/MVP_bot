@@ -402,7 +402,7 @@ async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
         user_id=telegram_id,
         tariff_date=days,
         price=price,
-        quantity_devices=device_limit
+        quantity_devices=limit_ip_int
     )
     print(f"[choose_device] Payment created with ID: {payment_id}")
 
