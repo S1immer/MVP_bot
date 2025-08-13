@@ -538,7 +538,7 @@ async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
         return
 
     # Получаем текущее количество устройств из базы
-    current_limit_device = await get_limit_device(user_id)
+    current_limit_device = await get_limit_device(telegram_id)
     price = tariff_data[f'{current_limit_device}_devices']["price"]
     days = tariff_data[f'{current_limit_device}_devices']["days"]
     await state.update_data(limit_ip=current_limit_device)
