@@ -195,7 +195,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                         await bot.send_message(telegram_id, text=f"[background_check_payment] Ошибка в продлении подписки! Обратитесь в поддержку!")
                         return None
 
-                    tariff_data = tariffs_data[get_period][get_device]
+                    tariff_data = tariffs_data[get_period][f"{get_device}_devices"]
                     tariff_days = tariff_data['days']
                     current_time = datetime.now()
                     expiry_time = current_time + timedelta(days=tariff_days)
