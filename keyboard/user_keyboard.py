@@ -484,7 +484,7 @@ async def expired_choose_tariff(callback: CallbackQuery, state: FSMContext):
             payment_id=payment_id,
             path="expired",
             days=days,
-            device_limit=limit_device,
+            device_limit=limit_ip_int,
             state=state
         )
     )
