@@ -461,7 +461,7 @@ async def expired_choose_tariff(callback: CallbackQuery, state: FSMContext):
         user_id=telegram_id,
         tariff_date=days,
         price=price,
-        quantity_devices=limit_device
+        quantity_devices=limit_ip_int
     )
 
     keyboard = InlineKeyboardMarkup(
