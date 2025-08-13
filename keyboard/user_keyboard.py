@@ -524,7 +524,7 @@ async def active_choose_action(callback: CallbackQuery, state: FSMContext):
 # 2. Обработка выбора тарифа продления существующей активной подписки
 @router.callback_query(SubscriptionState.active_choose_tariff)
 async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
+    telegram_id = callback.from_user.id
     tariff = callback.data  # например: "month", "three_months" и т.д.
     # action = 'action'
     await state.update_data(tariff=tariff)
