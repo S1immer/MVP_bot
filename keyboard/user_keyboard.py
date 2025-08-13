@@ -413,7 +413,7 @@ async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
     )
 
     await callback.message.edit_text(
-        text=f"<b>💳 Платеж создан!\n\n💰Сумма: {price}₽\n📱 Устройств: {device_limit}\n📅 Дней: {days}</b>\n\n"
+        text=f"<b>💳 Платеж создан!\n\n💰Сумма: {price}₽\n📱 Устройств: {limit_ip_int}\n📅 Дней: {days}</b>\n\n"
              f"После оплаты нажмите кнопку 'Проверить оплату' или подождите — бот сам проверит через 30 секунд.",
         reply_markup=keyboard,
         parse_mode="HTML"
