@@ -393,7 +393,7 @@ async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
     price = tariff_info["price"]
     limit_ip_int = tariff_info["device_limit"]
 
-    print(f"[choose_device] Calculated days: {days}, price: {price}, device_limit: {device_limit}")
+    print(f"[no_sub_choose_device] Calculated days: {days}, price: {price}, limit_ip_int: {limit_ip_int}")
 
     await state.update_data(tariff=tariff, devices=device_key)
 
