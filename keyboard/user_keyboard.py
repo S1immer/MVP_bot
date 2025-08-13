@@ -584,7 +584,7 @@ async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
     )
 
 
-# 3. Обработка выбора нового количества устройств
+# 3. Обработка выбора нового количества устройств если подписка активная
 @router.callback_query(SubscriptionState.active_choose_devices)
 async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
     telegram_id = callback.from_user.id
