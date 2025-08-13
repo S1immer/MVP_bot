@@ -287,7 +287,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                         path_for_db = 'active_change_devices'
                         data = await state.get_data()
                         added_devices = data.get('added_devices') # количество устройств (выбранное - существующее) = кол-во устройств для добавления в таблицу с трафиком для серверов
-                        get_device = data.get('limit_ip')
+                        get_device = data.get('limit_ip_int')
                         if not get_device:
                             await bot.send_message(telegram_id,
                                                    text="❌ Не удалось получить новое количество устройств.")
