@@ -395,7 +395,7 @@ async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
 
     print(f"[no_sub_choose_device] Calculated days: {days}, price: {price}, limit_ip_int: {limit_ip_int}")
 
-    await state.update_data(tariff=tariff, devices=device_key)
+    await state.update_data(tariff=tariff, limit_ip_int=limit_ip_int, days=days, price=price)
 
     telegram_id = callback.from_user.id
     confirmation_url, payment_id = await create_payment(
