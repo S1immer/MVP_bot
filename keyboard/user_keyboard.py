@@ -370,7 +370,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
 # 1. Обработка выбора срока подписки
 @router.callback_query(SubscriptionState.no_sub_choose_tariff, F.data.in_(tariffs_data.keys()))
 async def no_sub_choose_tariff(callback: CallbackQuery, state: FSMContext):
-    print(f"[choose_tariff] User: {callback.from_user.id}, tariff chosen: {callback.data}")
+    print(f"[no_sub_choose_tariff] User: {callback.from_user.id}, tariff chosen: {callback.data}")
     await state.update_data(tariff=callback.data)
     await callback.message.edit_text(
         text="Выберите количество устройств:",
