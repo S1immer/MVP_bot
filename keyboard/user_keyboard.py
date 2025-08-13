@@ -573,7 +573,7 @@ async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
     await asyncio.create_task(
         background_check_payment(
             bot=callback.bot,
-            telegram_id=user_id,
+            telegram_id=telegram_id,
             payment_id=payment_id,
             path="active",
             action="active_extend",
