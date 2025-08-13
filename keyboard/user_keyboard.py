@@ -228,7 +228,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                         path_for_db = 'active_extension'
                         data = await state.get_data()
                         get_period = data.get('tariff')
-                        get_device = data.get('limit_ip')
+                        get_device = data.get('limit_ip_int')
                         device_limit = f"{get_device}_devices"
 
                         if not get_period or not device_limit:
