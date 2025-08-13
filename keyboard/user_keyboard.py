@@ -442,9 +442,11 @@ async def expired_choose_tariff(callback: CallbackQuery, state: FSMContext):
     # data = await state.get_data()
 
     # Получаем количество устройств из БД
-    limit_device = await get_limit_device(telegram_id)
-    if not limit_device:
-        await callback.message.answer("❌ Не удалось получить данные о вашей подписке. Обратитесь в поддержку.")
+    limit_ip_int = await get_limit_device(telegram_id)
+    if not limit_ip_int:
+        await callback.message.answer("❌ Для продления не удалось получить "
+                                      "данные (лимит устройств) о вашей подписке.\n"
+                                      "Обратитесь в поддержку.")
         return
 
     tariff = callback.data
