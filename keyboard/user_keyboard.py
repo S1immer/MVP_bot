@@ -136,7 +136,7 @@ async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, 
                     path_for_db = "new_sub"
                     data = await state.get_data()
                     get_period = data.get('tariff')  # например, 'month'
-                    get_device = data.get('devices')  # например, '1_devices'
+                    get_device = data.get('limit_ip_int')  # например, '1_devices'
 
                     if not get_period or not get_device:
                         await bot.send_message(telegram_id, text="❌ Не указаны параметры тарифа.")
