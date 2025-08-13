@@ -545,7 +545,7 @@ async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
 
     # Создаём платёж
     confirmation_url, payment_id = await create_payment(
-        user_id=user_id,
+        user_id=telegram_id,
         tariff_date=days,
         price=price,
         quantity_devices=current_limit_device
