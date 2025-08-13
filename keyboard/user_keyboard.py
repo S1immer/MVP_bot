@@ -384,7 +384,7 @@ async def no_sub_choose_tariff(callback: CallbackQuery, state: FSMContext):
 async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     tariff = data.get("tariff")
-    device_key = callback.data
+    limit_ip_str = callback.data
 
     print(f"[choose_device] User: {callback.from_user.id}, tariff from state: {tariff}, device chosen: {device_key}")
 
