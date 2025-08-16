@@ -596,7 +596,7 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
                                       "Обратитесь в поддержку!")
         return
 
-    if selected_devices == current_user_limit_ip:
+    if selected_limit_ip_int == current_user_limit_ip:
         await callback.answer(text="ℹ️ У вас уже выбрано это количество устройств.", show_alert=True)
         return
 
