@@ -600,7 +600,7 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
         await callback.answer(text="ℹ️ У вас уже выбрано это количество устройств.", show_alert=True)
         return
 
-    if selected_devices < current_user_limit_ip:
+    if selected_limit_ip_int < current_user_limit_ip:
         server_id, client_uuid, ip_limit = await get_user_data_for_extend(telegram_id)
         expiry_timestamp = int(deleted_at.timestamp() * 1000)
         # Уменьшаем без оплаты
