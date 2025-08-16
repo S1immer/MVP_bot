@@ -610,7 +610,7 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
                           limit_ip=selected_limit_ip_int+1, # +1 чтобы на сервере при смене интернета не заблокировался ключ
                           expiry_time=expiry_timestamp
         )
-        dell = current_user_limit_ip - selected_devices
+        dell = current_user_limit_ip - selected_limit_ip_int
         await delete_user_db_on_server(dell, server_id, telegram_id)
         await save_ip_limit(telegram_id, selected_devices)
         await callback.message.delete()
