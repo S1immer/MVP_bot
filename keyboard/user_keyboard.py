@@ -581,7 +581,7 @@ async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(SubscriptionState.active_choose_devices)
 async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
     telegram_id = callback.from_user.id
-    selected_devices = int(callback.data.split("_")[0])
+    selected_limit_ip_int = int(callback.data.split("_")[0])
     current_user_limit_ip = await get_limit_device(telegram_id)
 
     subscription = await get_date_user(telegram_id)
