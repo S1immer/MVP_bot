@@ -615,7 +615,7 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
         await save_ip_limit(telegram_id, selected_limit_ip_int)
         await callback.message.delete()
         await callback.message.answer(
-            f"✅ Количество устройств уменьшено с {current_user_limit_ip} до {selected_devices}.\n"
+            f"✅ Количество устройств уменьшено с {current_user_limit_ip} до {selected_limit_ip_int}.\n"
             f"📅 Подписка действует до {deleted_at.date()}."
         )
         await state.clear()
