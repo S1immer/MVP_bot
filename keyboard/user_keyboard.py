@@ -4,7 +4,7 @@ import uuid
 from api_3xui.Update_time_key import extend_time_key
 from api_3xui.authorize import login_with_credentials, link, get_clients
 from api_3xui.client import delete_client, add_user
-from data.loader import Bot
+from data.loader import bot
 
 from aiogram import Router, F
 from aiogram.types import KeyboardButton, InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, CallbackQuery
