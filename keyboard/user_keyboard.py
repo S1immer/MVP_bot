@@ -502,7 +502,7 @@ async def active_choose_action(callback: CallbackQuery, state: FSMContext):
 
     if action == "active_extend":
         await callback.message.edit_text(
-            text="Выберите срок продления подписки:",
+            text="⌛️ Выберите срок продления подписки:",
             reply_markup=await inline_price()
         )
         await state.set_state(SubscriptionState.active_choose_tariff)
