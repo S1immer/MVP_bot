@@ -122,245 +122,212 @@ async def choosing_a_device() -> InlineKeyboardMarkup:
 # ============================================
 
 
-async def background_check_payment(bot: Bot, telegram_id: int, payment_id: str, path: str, state: FSMContext, **kwargs):
-    """
-    Универсальная функция авто-проверки платежа yookassa.,
-    path - строка: "no_subscription", "expired", "active"
-    kwargs - дополнительные параметры, нужные для логики каждого пути
-    """
-    for _ in range(120):  # проверяем до 5 минут (10 * 30сек)
-        status = await check_payment_status(payment_id)
-        if status == "succeeded":
-            try:
-                if path == "no_subscription":
-                    path_for_db = "new_sub"
-                    data = await state.get_data()
-                    get_period = data.get('tariff')  # например, 'month'
-                    get_device = data.get('limit_ip_int')  # например, '1_devices'
+async def subscription_issuance(telegram_id: int, payment_id: str, state: FSMContext):
 
-                    if not get_period or not get_device:
-                        await bot.send_message(telegram_id, text="❌ Не указаны параметры тарифа.")
-                        return None
+    get_state = await state.get_data()
+    path = get_state.get('path')
+    if path == "active":
+        action = get_state.get('action')
+    else:
+        action = None
 
-                    if get_period not in tariffs_data or get_device not in tariffs_data[get_period]:
-                        await bot.send_message(telegram_id, text="❌ Некорректные параметры тарифа.")
-                        return None
+    try:
+        if path == "no_subscription":
+            path_for_db = "new_sub"
+            get_period = get_state.get('tariff')  # например, 'month'
+            limit_ip_int = get_state.get('limit_ip_int')  # например, 1, 2, 3, 5
+            tariffs_days = get_state.get('tariffs_days')
+
+            result = await key_generation(telegram_id, period=get_period, devices=limit_ip_int)
+            if result is None:
+                await bot.send_message(telegram_id,
+                                       text=f"❌ Произошла ошибка при генерации ключа. Напишите в поддержку!\n"
+                                            f"Ваш оплаченный тариф - {tariffs_days} дней, количество устройств:{limit_ip_int}.\n"
+                                            f"id платежа: {payment_id}")
+                return None
+
+            link_data, server_id, tariff_days, device, client_uuid = result
+
+            await bot.send_message(
+                telegram_id,
+                text=f"✅ Оплата успешно прошла!\n"
+                     f"✨ Подписка активирована на {tariff_days} дней, устройств: {device}.\n\n"
+                     f"🔑 Ваша конфигурация:\n", parse_mode="HTML"
+            )
+            await bot.send_message(telegram_id, text=f"<pre>{link_data}</pre>", parse_mode="HTML")
+            await bot.send_message(telegram_id, text="📌 Выберите устройство, на которое планируете установить ключ:",
+                                   reply_markup=await choosing_a_device())
+            await bot.send_message(telegram_id,
+                                   text=f"⚠️<b>Не делитесь конфигурацией.</b> При использовании на устройствах сверх лимита подписки "
+                                        f"она автоматически блокируется системой!\n", parse_mode='HTML')
+
+            expiry_time_tariff = datetime.now() + timedelta(days=tariff_days)
+            await save_key_to_database(telegram_id=telegram_id,
+                                       client_uuid=client_uuid,
+                                       active_key=link_data,
+                                       ip_limit=device,
+                                       server_id=server_id,
+                                       expiry_time=expiry_time_tariff
+                                       )
+
+            created_pay = datetime.now()
+            await save_payment_id_to_database(telegram_id, payment_id, created_pay, path_for_db, device, tariff_days)
+            await add_user_db_on_server(device, server_id, telegram_id)
 
 
-                    result = await key_generation(telegram_id, period=get_period, devices=get_device)
-                    if result is None:
-                        await bot.send_message(telegram_id, text=f"❌ Произошла ошибка при генерации ключа. Напишите в поддержку!\n"
-                                                             f"Ваш оплаченный тариф - {get_period} дней, количество устройств:{get_device}.\n"
-                                                             f"id платежа: {payment_id}")
-                        return None
 
-                    link_data, server_id, tariff_days, device, client_uuid = result
+        elif path == "expired":
+            path_for_db = "sub_extension"
+            get_period = get_state.get('tariff')
+
+            user_data_for_extend = await get_user_data_for_extend(telegram_id)
+            if user_data_for_extend:
+                server_id, client_uuid, ip_limit = user_data_for_extend
+            else:
+                await bot.send_message(telegram_id,
+                                       text=f"[background_check_payment] Ошибка в продлении подписки! Обратитесь в поддержку!")
+                return None
+
+            tariff_data = tariffs_data[get_period][f"{ip_limit}_devices"]
+            tariff_days = tariff_data['days']
+            current_time = datetime.now()
+            expiry_time = current_time + timedelta(days=tariff_days)
+            expiry_timestamp = int(expiry_time.timestamp() * 1000)
+
+            result_extend = await extend_time_key(
+                telegram_id=telegram_id,
+                server_id_name=server_id,
+                client_uuid=client_uuid,
+                limit_ip=ip_limit + 1,  # +1 чтобы на сервере при смене интернета не заблокировался ключ
+                expiry_time=expiry_timestamp
+            )
+            if result_extend:
+                new_created = datetime.now()
+                new_deleted = new_created + timedelta(tariff_days)
+                await save_the_new_subscription_time_for_extension(telegram_id, new_created, new_deleted)
+                await save_payment_id_to_database(telegram_id, payment_id, new_created, path_for_db, ip_limit,
+                                                  tariff_days)
+                await bot.send_message(telegram_id, text=f"✅ Оплата успешно прошла!\n"
+                                                         f"✨ Подписка успешно продлена на {tariff_days} дней!")
+            else:
+                await bot.send_message(telegram_id,
+                                       text=f"❌ Не удалось продлить подписку. Обратитесь в поддержку.\n"
+                                            f"Тариф продления - {tariff_days} дней, кол-во устройств: {ip_limit} ")
+
+
+
+        elif path == "active":
+
+            if action == "active_extend":
+
+                path_for_db = 'active_extension'
+                days = get_state.get('days')
+
+                data_time_sub = await get_date_user(telegram_id)
+                created_at, deleted_at = data_time_sub
+                remaining_days_sub = deleted_at - datetime.now()
+                total_extension = remaining_days_sub + timedelta(days=days)
+                new_deleted = datetime.now() + total_extension
+
+                user_data_for_extend = await get_user_data_for_extend(telegram_id)
+                if user_data_for_extend:
+                    server_id, client_uuid, ip_limit = user_data_for_extend
+                else:
+                    await bot.send_message(telegram_id,
+                                           text=f"[background_check_payment] Ошибка в продлении подписки! Обратитесь в поддержку!")
+                    return None
+
+                # Преобразуем дату окончания подписки в timestamp в мс
+                expiry_timestamp = int(new_deleted.timestamp() * 1000)
+
+                # Отправляем данные на продление
+                result_extend = await extend_time_key(
+                    telegram_id=telegram_id,
+                    server_id_name=server_id,
+                    client_uuid=client_uuid,
+                    limit_ip=ip_limit + 1,  # +1 чтобы на сервере при смене интернета не заблокировался ключ
+                    expiry_time=expiry_timestamp
+                )
+
+                if result_extend:
+                    new_created = datetime.now()
+                    await save_the_new_subscription_time_for_extension(telegram_id, new_created, new_deleted)
+                    await save_payment_id_to_database(telegram_id, payment_id, new_created, path_for_db, ip_limit, days)
+                    await bot.send_message(telegram_id, text=f"✅ Оплата успешно прошла!\n"
+                                                             f"✨ Подписка успешно продлена на {days} дней!")
+
+
+
+            elif action == "active_change_devices":
+                path_for_db = 'active_change_devices'
+                added_devices = get_state.get('added_devices')  # количество устройств (выбранное - существующее) = кол-во устройств для добавления в таблицу с трафиком для серверов
+                limit_ip_int = get_state.get('limit_ip_int')
+                if not limit_ip_int:
+                    await bot.send_message(telegram_id,
+                                           text="❌ Не удалось получить новое количество устройств.")
+                    return None
+
+                user_data = await get_user_data_for_extend(telegram_id)
+                if not user_data:
+                    await bot.send_message(telegram_id, text="❌ Не удалось получить данные пользователя.")
+                    return None
+
+                server_id, client_uuid, ip_limit = user_data
+
+                subscription = await get_date_user(telegram_id)
+                if not subscription:
+                    await bot.send_message(telegram_id, text="❌ Подписка не найдена.")
+                    return None
+
+                _, deleted_at = subscription
+                if not deleted_at:
+                    await bot.send_message(telegram_id, text="❌ Не найдена дата окончания подписки.")
+                    return None
+
+                expiry_timestamp = int(deleted_at.timestamp() * 1000)
+
+                result_extend = await extend_time_key(
+                    telegram_id=telegram_id,
+                    server_id_name=server_id,
+                    client_uuid=client_uuid,
+                    limit_ip=limit_ip_int + 1,
+                    expiry_time=expiry_timestamp
+                )
+
+                if result_extend:
+                    await save_ip_limit(telegram_id, limit_ip_int)
+                    await add_user_db_on_server(added_devices, server_id, telegram_id)
+
+                    await save_payment_id_to_database(
+                        telegram_id=telegram_id,
+                        payment_id=payment_id,
+                        created_pay=datetime.now(),
+                        payment_data=path_for_db,
+                        limit_device=limit_ip_int,
+                        tariff_days=(deleted_at - datetime.now()).days
+                    )
 
                     await bot.send_message(
                         telegram_id,
-                        text=f"✅ Оплата успешно прошла!\n"
-                             f"✨ Подписка активирована на {tariff_days} дней, устройств: {device}.\n\n"
-                             f"🔑 Ваша конфигурация:\n", parse_mode="HTML"
+                        text=f"✅ Количество устройств изменено на {limit_ip_int}.\n"
+                             f"📅 Подписка всё так же действует до {deleted_at.date()}."
                     )
-                    await bot.send_message(telegram_id, text=f"<pre>{link_data}</pre>", parse_mode="HTML")
-                    await bot.send_message(telegram_id, text="📌 Выберите устройство, на которое планируете установить ключ:",
-                                           reply_markup=await choosing_a_device())
-                    await bot.send_message(telegram_id, text=f"⚠️<b>Не делитесь конфигурацией.</b> При использовании на устройствах сверх лимита подписки "
-                             f"она автоматически блокируется системой!\n", parse_mode='HTML')
-
-                    expiry_time_tariff = datetime.now() + timedelta(days=tariff_days)
-                    await save_key_to_database(telegram_id=telegram_id,
-                                               client_uuid=client_uuid,
-                                               active_key=link_data,
-                                               ip_limit=device,
-                                               server_id=server_id,
-                                               expiry_time=expiry_time_tariff
-                                               )
-
-                    created_pay = datetime.now()
-                    await save_payment_id_to_database(telegram_id, payment_id, created_pay, path_for_db, device, tariff_days)
-                    await add_user_db_on_server(device, server_id, telegram_id)
-
-
-                elif path == "expired":
-                    path_for_db = "sub_extension"
-                    data = await state.get_data()
-                    get_period = data.get('tariff')
-                    get_device = data.get('limit_ip_int')
-
-                    user_data_for_extend = await get_user_data_for_extend(telegram_id)
-                    if user_data_for_extend:
-                        server_id, client_uuid, ip_limit = user_data_for_extend
-                    else:
-                        await bot.send_message(telegram_id, text=f"[background_check_payment] Ошибка в продлении подписки! Обратитесь в поддержку!")
-                        return None
-
-                    tariff_data = tariffs_data[get_period][f"{get_device}_devices"]
-                    tariff_days = tariff_data['days']
-                    current_time = datetime.now()
-                    expiry_time = current_time + timedelta(days=tariff_days)
-                    expiry_timestamp = int(expiry_time.timestamp() * 1000)
-
-                    result_extend = await extend_time_key(
-                        telegram_id=telegram_id,
-                        server_id_name=server_id,
-                        client_uuid=client_uuid,
-                        limit_ip=ip_limit+1, # +1 чтобы на сервере при смене интернета не заблокировался ключ
-                        expiry_time=expiry_timestamp
-                    )
-                    if result_extend:
-                        new_created = datetime.now()
-                        new_deleted = new_created + timedelta(tariff_days)
-                        await save_the_new_subscription_time_for_extension(telegram_id, new_created, new_deleted)
-                        await save_payment_id_to_database(telegram_id, payment_id, new_created, path_for_db, ip_limit, tariff_days)
-                        await bot.send_message(telegram_id, text=f"✅ Оплата успешно прошла!\n"
-                                                             f"✨ Подписка успешно продлена на {tariff_days} дней!")
-                    else:
-                        await bot.send_message(telegram_id,
-                                               text=f"❌ Не удалось продлить подписку. Обратитесь в поддержку.\n"
-                                                    f"Тариф продления - {tariff_days} дней, кол-во устройств: {ip_limit} ")
-
-
-                elif path == "active":
-                    action = kwargs.get("action")  # например "extension" или "change_devices"
-                    if action == "active_extend":
-
-                        path_for_db = 'active_extension'
-                        data = await state.get_data()
-                        get_period = data.get('tariff')
-                        get_device = data.get('limit_ip_int')
-                        device_limit = f"{get_device}_devices"
-
-                        if not get_period or not device_limit:
-                            await bot.send_message(telegram_id,
-                                                   text="❌ Не указаны параметры тарифа. Обратитесь в поддержку!")
-                            return None
-
-                        if get_period not in tariffs_data or device_limit not in tariffs_data[get_period]:
-                            await bot.send_message(telegram_id,
-                                                   text="❌ Некорректные параметры тарифа. Обратитесь в поддержку!")
-                            return None
-
-                        days = tariffs_data[get_period][device_limit]['days']
-
-
-                        data_time_sub = await get_date_user(telegram_id)
-                        created_at, deleted_at = data_time_sub
-                        remaining_days_sub = deleted_at - datetime.now()
-                        total_extension = remaining_days_sub + timedelta(days=days)
-                        new_deleted = datetime.now() + total_extension
-
-
-                        user_data_for_extend = await get_user_data_for_extend(telegram_id)
-                        if user_data_for_extend:
-                            server_id, client_uuid, ip_limit = user_data_for_extend
-                        else:
-                            await bot.send_message(telegram_id,
-                                                   text=f"[background_check_payment] Ошибка в продлении подписки! Обратитесь в поддержку!")
-                            return None
-
-                        # Преобразуем дату окончания подписки в timestamp в мс
-                        expiry_timestamp = int(new_deleted.timestamp() * 1000)
-
-                        # Отправляем данные на продление
-                        result_extend = await extend_time_key(
-                            telegram_id=telegram_id,
-                            server_id_name=server_id,
-                            client_uuid=client_uuid,
-                            limit_ip=ip_limit+1, # +1 чтобы на сервере при смене интернета не заблокировался ключ
-                            expiry_time=expiry_timestamp
-                        )
-
-                        if result_extend:
-                            new_created = datetime.now()
-                            print(f"new_created - {new_created}")
-                            print(f"new_deleted - {new_deleted}")
-                            await save_the_new_subscription_time_for_extension(telegram_id, new_created, new_deleted)
-                            await save_payment_id_to_database(telegram_id, payment_id, new_created, path_for_db, ip_limit, days)
-                            print(f"payment_data - {path_for_db}")
-                            await bot.send_message(telegram_id, text=f"✅ Оплата успешно прошла!\n"
-                                                                     f"✨ Подписка успешно продлена на {days} дней!")
-
-
-                    elif action == "active_change_devices":
-
-                        path_for_db = 'active_change_devices'
-                        data = await state.get_data()
-                        added_devices = data.get('added_devices') # количество устройств (выбранное - существующее) = кол-во устройств для добавления в таблицу с трафиком для серверов
-                        get_device = data.get('limit_ip_int')
-                        if not get_device:
-                            await bot.send_message(telegram_id,
-                                                   text="❌ Не удалось получить новое количество устройств.")
-                            return None
-
-                        user_data = await get_user_data_for_extend(telegram_id)
-                        if not user_data:
-                            await bot.send_message(telegram_id, text="❌ Не удалось получить данные пользователя.")
-                            return None
-
-                        server_id, client_uuid, ip_limit = user_data
-
-                        subscription = await get_date_user(telegram_id)
-                        if not subscription:
-                            await bot.send_message(telegram_id, text="❌ Подписка не найдена.")
-                            return None
-
-                        _, deleted_at = subscription
-                        if not deleted_at:
-                            await bot.send_message(telegram_id, text="❌ Не найдена дата окончания подписки.")
-                            return None
-
-                        expiry_timestamp = int(deleted_at.timestamp() * 1000)
-
-                        result_extend = await extend_time_key(
-                            telegram_id=telegram_id,
-                            server_id_name=server_id,
-                            client_uuid=client_uuid,
-                            limit_ip=get_device + 1,
-                            expiry_time=expiry_timestamp
-                        )
-
-                        if result_extend:
-                            await save_ip_limit(telegram_id, get_device)
-                            await add_user_db_on_server(added_devices, server_id, telegram_id)
-
-                            await save_payment_id_to_database(
-                                telegram_id=telegram_id,
-                                payment_id=payment_id,
-                                created_pay=datetime.now(),
-                                payment_data=path_for_db,
-                                limit_device=get_device,
-                                tariff_days=(deleted_at - datetime.now()).days
-                            )
-
-                            await bot.send_message(
-                                telegram_id,
-                                text=f"✅ Количество устройств изменено на {get_device}.\n"
-                                     f"📅 Подписка всё так же действует до {deleted_at.date()}."
-                            )
-                            await state.clear()
-                        else:
-                            await bot.send_message(telegram_id, text="❌ Не удалось изменить количество устройств.")
-
+                    await state.clear()
                 else:
-                    # Если путь неизвестен
-                    await bot.send_message(telegram_id, text="✅ Оплата подтверждена!")
+                    await bot.send_message(telegram_id, text="❌ Не удалось изменить количество устройств.")
 
-            except Exception as e:
-                print(f"Ошибка при отправке сообщения о подтверждении оплаты: {e}")
-            break
 
-        await asyncio.sleep(10)
-    else:
-        # Если по истечении времени оплаты нет
-        try:
-            await bot.send_message(
-                telegram_id,
-                text="⚠️ Оплата не была подтверждена, попробуйте ещё раз."
-            )
-        except Exception as e:
-            print(f"Ошибка при отправке сообщения об ошибке оплаты: {e}")
+            else:
+                # Если путь неизвестен
+                await bot.send_message(telegram_id, text="✅ Оплата подтверждена!\n"
+                                                         "❌ Не удалось выполнить "
+                                                         "действие после успешной оплаты, обратитесь в поддержку!")
 
+    except Exception as e:
+        await bot.send_message(chat_id=telegram_id, text=f"✅ Оплата подтверждена!\n"
+                                                         f"❌ Не удалось выполнить "
+                                                         f"действие после успешной оплаты, обратитесь в поддержку!")
+        logger.error(f"Ошибка при обработке выдачи подписки (новой/продление/изменение кол-во устр-в): {e}")
 
 
 # ============================================
