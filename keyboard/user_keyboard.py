@@ -621,7 +621,7 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
         return
 
     # Увеличиваем — считаем доплату
-    added_devices = selected_devices - current_user_limit_ip
+    added_devices = selected_limit_ip_int - current_user_limit_ip
     days_remaining = (deleted_at - datetime.now()).days
     if days_remaining <= 0:
         await callback.message.answer("❌ Срок вашей подписки уже истёк. Продлите её перед изменением.")
