@@ -525,7 +525,7 @@ async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     print("🔧 FSM данные после выбора тарифа:", data)
 
-    tariff_data = tariffs_data.get(tariff)
+    tariff_data = data.get("tariff")
     if not tariff_data:
         await callback.message.answer("❌ Некорректный тариф.")
         return
