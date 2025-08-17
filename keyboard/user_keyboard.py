@@ -509,7 +509,7 @@ async def active_choose_action(callback: CallbackQuery, state: FSMContext):
 
     elif action == "active_change_devices":
         await callback.message.edit_text(
-            text="Выберите новое количество устройств:",
+            text="📱 Выберите новое количество устройств:",
             reply_markup=await inline_device()
         )
         await state.set_state(SubscriptionState.active_choose_devices)
