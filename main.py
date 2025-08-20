@@ -6,7 +6,8 @@ from database.DB_CONN_async import engine, DeclBase
 from logs.admin_notify import notify_admin
 from logs.time_logging import time_logg
 from logs.logging_config import logger
-
+from payment.yookassa.payment_lock import PaymentLockMiddleware
+from api_3xui.admin.main_menu import admin_router
 
 
 async def create_missing_tables():
@@ -22,8 +23,9 @@ async def main():
     dp.include_router(user_menu.router)
     dp.include_router(admin_menu.router)
     dp.include_router(user_keyboard.router)
-
-
+    dp.message.middleware(PaymentLockMiddleware())
+    dp.callback_query.middleware(PaymentLockMiddleware())
+    dp.include_router(admin_router)
 
     try:
         logger.info("Бот успешно запущен!")
