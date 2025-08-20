@@ -15,6 +15,8 @@ from keyboard.user_keyboard import *
 
 from handlers.states import SubscriptionState
 
+from handlers.anti_spam import anti_spam
+
 
 
 router = Router()
@@ -35,22 +37,46 @@ async def set_commands():
 
 # ______________________________________________________________________________________________________
 @router.message(Command("pay"))
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='pay',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def pay_sub(msg: Message, state: FSMContext):
     await buy_subscription(msg, state)
 
 
 @router.message(Command("support"))
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='support',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def helping(msg: Message):
     await help_section(msg)
 
 
 @router.message(Command("my_id"))
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='my_id',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def show_my_id(msg: Message):
     telegram_id = msg.from_user.id
     await msg.answer(text=f"🆔 Профиля: {telegram_id}")
 
 
 @router.message(Command("tariffs"))
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='tariffs',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def show_tariffs(message: types.Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -68,9 +94,6 @@ async def show_tariffs(message: types.Message):
         "( 1 | 2 | 3 | 5 устройств )\n\n"
 
         f"🔵 <b>3 месяца</b> — "
-        f"{tariffs_data['three_months']['1_devices']['price']}₽ / "
-        f"{tariffs_data['three_months']['2_devices']['price']}₽ / "
-        f"{tariffs_data['three_months']['3_devices']['price']}₽ / "
         f"{tariffs_data['three_months']['1_devices']['price']}₽ | "
         f"{tariffs_data['three_months']['2_devices']['price']}₽ | "
         f"{tariffs_data['three_months']['3_devices']['price']}₽ | "
@@ -160,6 +183,12 @@ async def start_func(msg: Message):
 
 # Обработчик кнопки "Остаток дней"
 @router.message(F.text == "📆Остаток дней")
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='start',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def remaining_days(msg: Message):
     name_client = msg.from_user.first_name
     telegram_id = msg.from_user.id
@@ -225,7 +254,13 @@ async def remaining_days(msg: Message):
 
 
 # Обработчик кнопки "Инструкция и ключ"
-@router.message(F.text == "⚙️ Инструкция и 🔑 Ключ")
+@router.message(F.text == "⚙️ Инструкция и ключ")
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=5,
+    section='settings',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def instruction_key(msg: Message, state: FSMContext):
     telegram_id = msg.from_user.id
     await state.clear()
@@ -263,6 +298,12 @@ async def instruction_key(msg: Message, state: FSMContext):
 
 
 @router.message(F.text == "💸 Оплатить подписку")
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='pay',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def buy_subscription(msg: Message, state: FSMContext):
     await handle_buy_subscription(msg.from_user.id, msg, state)
     return
@@ -327,6 +368,12 @@ async def handle_buy_subscription(user_id: int, msg: Message, state: FSMContext)
 
 # Обработчик кнопки "Сменить сервер"
 @router.message(F.text == "🌍Сменить сервер")
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='change',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def change_server(msg: Message, state: FSMContext):
     telegram_id = msg.from_user.id
     await state.clear()
@@ -361,6 +408,12 @@ async def change_server(msg: Message, state: FSMContext):
 
 # Обработчик кнопки "Помощь"
 @router.message(F.text == "🆘 Помощь")
+@anti_spam(
+    warn_delay=0.5,
+    block_delay=2,
+    section='help',
+    message_text="🚫 Пожалуйста, не спамьте!"
+)
 async def help_section(msg: Message):
     await msg.answer(
         "📌 В этом разделе вы найдёте ключевые решения для самых распространённых проблем, связанных с использованием программы.\n\n"
