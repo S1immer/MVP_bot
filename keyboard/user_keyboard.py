@@ -67,7 +67,8 @@ async def choice_of_payment_system() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💳 Карта | СБП", callback_data='pay_yookassa')],
-            [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data='pay_telegram_stars')]
+            # [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data='pay_telegram_stars')],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data='back')]
         ]
     )
 
