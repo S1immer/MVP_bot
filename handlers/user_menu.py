@@ -25,7 +25,7 @@ commands = [
     BotCommand(command="/start", description="🏠 Главное меню"),
     BotCommand(command="/tariffs", description="📊 Тарифы"),
     BotCommand(command="/pay", description="💳 Оплатить подписку"),
-    BotCommand(command="/my_id", description="🆔 Профиля"),
+    BotCommand(command="/my_id", description="🆔 ID Аккаунта"),
     BotCommand(command="/support", description="🆘 Помощь"),
 ]
 
@@ -61,32 +61,35 @@ async def show_tariffs(message: types.Message):
     text = (
         f"<b>📊 Тарифы:</b>\n\n"
         f"🟢 <b>1 месяц</b> — "
-        f"{tariffs_data['month']['1_devices']['price']}₽ / "
-        f"{tariffs_data['month']['2_devices']['price']}₽ / "
-        f"{tariffs_data['month']['3_devices']['price']}₽ / "
+        f"{tariffs_data['month']['1_devices']['price']}₽ | "
+        f"{tariffs_data['month']['2_devices']['price']}₽ | "
+        f"{tariffs_data['month']['3_devices']['price']}₽ | "
         f"{tariffs_data['month']['5_devices']['price']}₽\n"
-        "(1 / 2 / 3 / 5 устройств)\n\n"
+        "( 1 | 2 | 3 | 5 устройств )\n\n"
 
         f"🔵 <b>3 месяца</b> — "
         f"{tariffs_data['three_months']['1_devices']['price']}₽ / "
         f"{tariffs_data['three_months']['2_devices']['price']}₽ / "
         f"{tariffs_data['three_months']['3_devices']['price']}₽ / "
+        f"{tariffs_data['three_months']['1_devices']['price']}₽ | "
+        f"{tariffs_data['three_months']['2_devices']['price']}₽ | "
+        f"{tariffs_data['three_months']['3_devices']['price']}₽ | "
         f"{tariffs_data['three_months']['5_devices']['price']}₽\n"
-        "(1 / 2 / 3 / 5 устройств)\n\n"
+        "( 1 | 2 | 3 | 5 устройств )\n\n"
 
         f"🟠 <b>6 месяцев</b> — "
-        f"{tariffs_data['six_months']['1_devices']['price']}₽ / "
-        f"{tariffs_data['six_months']['2_devices']['price']}₽ / "
-        f"{tariffs_data['six_months']['3_devices']['price']}₽ / "
+        f"{tariffs_data['six_months']['1_devices']['price']}₽ | "
+        f"{tariffs_data['six_months']['2_devices']['price']}₽ | "
+        f"{tariffs_data['six_months']['3_devices']['price']}₽ | "
         f"{tariffs_data['six_months']['5_devices']['price']}₽\n"
-        "(1 / 2 / 3 / 5 устройств)\n\n"
+        "( 1 | 2 | 3 | 5 устройств )\n\n"
 
         f"🔴 <b>12 месяцев</b> — "
-        f"{tariffs_data['year']['1_devices']['price']}₽ / "
-        f"{tariffs_data['year']['2_devices']['price']}₽ / "
-        f"{tariffs_data['year']['3_devices']['price']}₽ / "
+        f"{tariffs_data['year']['1_devices']['price']}₽ | "
+        f"{tariffs_data['year']['2_devices']['price']}₽ | "
+        f"{tariffs_data['year']['3_devices']['price']}₽ | "
         f"{tariffs_data['year']['5_devices']['price']}₽\n"
-        "(1 / 2 / 3 / 5 устройств)\n\n"
+        "( 1 | 2 | 3 | 5 устройств )\n\n"
 
         "<b>🎁 Получайте скидки от 7% до 25% — чем больше выбираете, тем выгоднее!</b>"
     )
@@ -131,12 +134,14 @@ async def start_func(msg: Message):
 
         await msg.answer_photo(
             photo=types.FSInputFile(path.join('images', 'logo.jpg')),
-            caption=(
-                '🎉 Добро пожаловать в *MVPNet*🌐✨\n\n'
-                'Наш сервер \\- не просто сервер\\. Это умная консультация по вашей мобильной технике\\! *Получите ответ на ваш вопрос* в развёрнутом виде в любое время суток\\!\n\n'
-                '> 💰💰За 199 рублей в месяц вы получаете умную консультацию в любой момент времени, если у вас что\\-то случилось, мы поможем и объясним, почему ваш телефон работает не корректно\\!\n\n'
-                'Благодаря приложению мы сможем идентифицировать проблемы на вашем устройстве\\! *Не забудьте его установить*\\!\n\n'
-            ), parse_mode="MarkdownV2",
+            caption=("🎉 Добро пожаловать в <b>MVPNet</b> 🌐✨\n"
+        "Мы заботимся о том, чтобы ваше устройство всегда оставалось свободным и защищённым.\n\n"
+        "<i>Никаких ограничений — пользуйтесь им так, как удобно именно вам.</i>\n\n"
+        "<blockquote>💰 Всего за 199 рублей в месяц вы получаете постоянную поддержку.\n"
+        "Если что-то перестанет работать привычным образом — мы объясним, в чём дело, и поможем вернуть стабильность.</blockquote>\n\n"
+        "📲 Наше приложение позволяет быстро находить скрытые проблемы и обеспечивать бесперебойную работу устройства.\n"
+        "<i>Подключайтесь к MVPNet и пользуйтесь без границ!</i>"),
+            parse_mode="HTML",
             reply_markup=keyboard_show_tariffs
         )
         keyboard = await main_menu_keyboard()
