@@ -422,7 +422,7 @@ async def expired_choose_tariff(callback: CallbackQuery, state: FSMContext):
     if not limit_ip_int:
         await callback.message.answer("❌ Для продления не удалось получить "
                                       "данные (лимит устройств) о вашей подписке.\n"
-                                      "Обратитесь в поддержку.")
+                                      "Попробуйте снова или обратитесь в поддержку.")
         return
 
     tariff = callback.data
