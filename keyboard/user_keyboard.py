@@ -329,6 +329,15 @@ async def subscription_issuance(telegram_id: int, payment_id: str, state: FSMCon
                                                          f"❌ Не удалось выполнить "
                                                          f"действие после успешной оплаты, обратитесь в поддержку!")
         logger.error(f"Ошибка при обработке выдачи подписки (новой/продление/изменение кол-во устр-в): {e}")
+    finally:
+        await state.clear()
+
+@router.callback_query(F.data == 'back')
+async def back_to_start_pay(callback: CallbackQuery, state: FSMContext):
+    from handlers.user_menu import handle_buy_subscription
+    telegram_id = callback.from_user.id
+    await callback.message.delete()
+    await handle_buy_subscription(telegram_id, callback.message, state)
 
 
 # ============================================
