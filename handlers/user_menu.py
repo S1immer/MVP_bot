@@ -67,7 +67,7 @@ async def helping(msg: Message):
 )
 async def show_my_id(msg: Message):
     telegram_id = msg.from_user.id
-    await msg.answer(text=f"🆔 Профиля: {telegram_id}")
+    await msg.answer(text=f"🆔 Ваш ID Аккаунта: {telegram_id}")
 
 
 @router.message(Command("tariffs"))
