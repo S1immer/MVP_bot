@@ -428,7 +428,6 @@ async def expired_choose_tariff(callback: CallbackQuery, state: FSMContext):
     tariff = callback.data
     days = tariffs_data[tariff][f"{limit_ip_int}_devices"]["days"]
     price = tariffs_data[tariff][f"{limit_ip_int}_devices"]["price"]
-    # device_limit = tariffs_data[tariff][f"{limit_device}_devices"]["device_limit"]
 
     await state.update_data(tariff=tariff, limit_ip=f"{limit_device}_devices")
     print(tariff, f"{limit_device}_devices")
