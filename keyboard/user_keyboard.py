@@ -4,10 +4,11 @@ import uuid
 from api_3xui.Update_time_key import extend_time_key
 from api_3xui.authorize import login_with_credentials, link, get_clients
 from api_3xui.client import delete_client, add_user
+
 from data.loader import bot
 
 from aiogram import Router, F
-from aiogram.types import KeyboardButton, InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, CallbackQuery
+from aiogram.types import KeyboardButton, InlineKeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, CallbackQuery, ContentType, Message
 from aiogram.fsm.context import FSMContext
 
 from api_3xui.tariff_key_generator import key_generation
@@ -16,6 +17,7 @@ from api_3xui.trial_key import create_trial_key
 from handlers.states import SubscriptionState
 
 from payment.yookassa.yookassa_function import  create_payment, check_payment_status
+from payment.telegram_stars.tg_stars_func import create_stars_payment
 
 from data_servers.tariffs import tariffs_data
 
@@ -38,7 +40,7 @@ router = Router()
 async def main_menu_keyboard() -> ReplyKeyboardMarkup:
     """Создает основное меню (ReplyKeyboard)."""
     keyboard_layout = [
-        [KeyboardButton(text='📆Остаток дней'), KeyboardButton(text='⚙️ Инструкция и 🔑 Ключ')],
+        [KeyboardButton(text='📆Остаток дней'), KeyboardButton(text='🔑 Инструкция и ключ')],
         [KeyboardButton(text='💸 Оплатить подписку'), KeyboardButton(text='🌍Сменить сервер')],
         #KeyboardButton(text='🤝 Реферальная система')], #KeyboardButton(text='🎁 Промокод')],
         [KeyboardButton(text='🆘 Помощь')],
@@ -313,7 +315,6 @@ async def subscription_issuance(telegram_id: int, payment_id: str, state: FSMCon
                         text=f"✅ Количество устройств изменено на {limit_ip_int}.\n"
                              f"📅 Подписка всё так же действует до {deleted_at.date()}."
                     )
-                    await state.clear()
                 else:
                     await bot.send_message(telegram_id, text="❌ Не удалось изменить количество устройств.")
 
@@ -331,6 +332,7 @@ async def subscription_issuance(telegram_id: int, payment_id: str, state: FSMCon
         logger.error(f"Ошибка при обработке выдачи подписки (новой/продление/изменение кол-во устр-в): {e}")
     finally:
         await state.clear()
+
 
 @router.callback_query(F.data == 'back')
 async def back_to_start_pay(callback: CallbackQuery, state: FSMContext):
@@ -369,43 +371,20 @@ async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
     price = tariff_info["price"]
     limit_ip_int = tariff_info["device_limit"]
 
-    print(f"[no_sub_choose_device] Calculated days: {days}, price: {price}, limit_ip_int: {limit_ip_int}")
+    await state.update_data(path="no_subscription",
+                            tariff=tariff,
+                            limit_ip_int=limit_ip_int,
+                            days=days,
+                            price=price)
+    await callback.message.edit_text(text=f"<b>💳 Оплата новой подписки:</b>\n\n"
+                                          f"📱 Устройств: {limit_ip_int}\n"
+                                          f"📅 Дней: {days}\n\n"
+                                          f"💰Сумма: {price}₽\n\n"
+                                          f"<b><u>Выберите способ оплаты:</u></b>",
+                                     parse_mode='HTML',
+                                     reply_markup=await choice_of_payment_system()
+                                     )
 
-    await state.update_data(tariff=tariff, limit_ip_int=limit_ip_int, days=days, price=price)
-
-    telegram_id = callback.from_user.id
-    confirmation_url, payment_id = await create_payment(
-        user_id=telegram_id,
-        tariff_date=days,
-        price=price,
-        quantity_devices=limit_ip_int
-    )
-    print(f"[choose_device] Payment created with ID: {payment_id}")
-
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Оплатить", url=confirmation_url)]
-        ]
-    )
-
-    await callback.message.edit_text(
-        text=f"<b>💳 Платеж создан!\n\n💰Сумма: {price}₽\n📱 Устройств: {limit_ip_int}\n📅 Дней: {days}</b>\n\n"
-             f"После оплаты нажмите кнопку 'Проверить оплату' или подождите — бот сам проверит через 30 секунд.",
-        reply_markup=keyboard,
-        parse_mode="HTML"
-    )
-
-    await asyncio.create_task(
-        background_check_payment(
-            bot=callback.bot,
-            telegram_id=telegram_id,
-            payment_id=payment_id,
-            path="no_subscription",
-            days=days,
-            device_limit=limit_ip_int,
-            state=state
-        )
-    )
 
 
 # ============================================
@@ -415,7 +394,6 @@ async def no_sub_choose_device(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(SubscriptionState.expired_choose_tariff, F.data.in_(tariffs_data.keys()))
 async def expired_choose_tariff(callback: CallbackQuery, state: FSMContext):
     telegram_id = callback.from_user.id
-    # data = await state.get_data()
 
     # Получаем количество устройств из БД
     limit_ip_int = await get_limit_device(telegram_id)
@@ -429,40 +407,20 @@ async def expired_choose_tariff(callback: CallbackQuery, state: FSMContext):
     days = tariffs_data[tariff][f"{limit_ip_int}_devices"]["days"]
     price = tariffs_data[tariff][f"{limit_ip_int}_devices"]["price"]
 
-    await state.update_data(tariff=tariff, limit_ip=f"{limit_device}_devices")
-    print(tariff, f"{limit_device}_devices")
-
-    confirmation_url, payment_id = await create_payment(
-        user_id=telegram_id,
-        tariff_date=days,
-        price=price,
-        quantity_devices=limit_ip_int
-    )
-
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💳Оплатить", url=confirmation_url)]
-        ]
-    )
-
-    await callback.message.edit_text(
-        text=f"<b>💳 Продление подписки создано!\n\n💰Сумма: {price}₽\n📱 Устройств: {limit_ip_int}\n📅 Дней: {days}</b>\n\n"
-             f"После оплаты нажмите кнопку 'Проверить оплату' или подождите — бот сам проверит через 30 секунд.",
-        reply_markup=keyboard,
-        parse_mode="HTML"
-    )
-
-    await asyncio.create_task(
-        background_check_payment(
-            bot=callback.bot,
-            telegram_id=telegram_id,
-            payment_id=payment_id,
-            path="expired",
-            days=days,
-            device_limit=limit_ip_int,
-            state=state
-        )
-    )
+    await state.update_data(path="expired",
+                            tariff=tariff,
+                            limit_ip_int=limit_ip_int,
+                            price=price,
+                            days=days
+                            )
+    await callback.message.edit_text(text=f"<b>💳 Продление подписки:</b>\n\n"
+                                          f"📱 Устройств: {limit_ip_int}\n"
+                                          f"📅 Дней: {days}\n\n"
+                                          f"💰Сумма: {price}₽\n\n"
+                                          f"<b><u>Выберите способ оплаты:</u></b>",
+                                     parse_mode='HTML',
+                                     reply_markup=await choice_of_payment_system()
+                                     )
 
 
 # ============================================
@@ -477,14 +435,16 @@ async def active_choose_action(callback: CallbackQuery, state: FSMContext):
 
     if action == "active_extend":
         await callback.message.edit_text(
-            text="⌛️ Выберите срок продления подписки:",
+            text="⌛️ <b><u>Выберите срок продления подписки:</u></b>",
+            parse_mode='HTML',
             reply_markup=await inline_price()
         )
         await state.set_state(SubscriptionState.active_choose_tariff)
 
     elif action == "active_change_devices":
         await callback.message.edit_text(
-            text="📱 Выберите новое количество устройств:",
+            text="📱 <b><u>Выберите новое количество устройств:</u></b>",
+            parse_mode='HTML',
             reply_markup=await inline_device()
         )
         await state.set_state(SubscriptionState.active_choose_devices)
@@ -506,49 +466,25 @@ async def active_choose_tariff(callback: CallbackQuery, state: FSMContext):
 
     # Получаем текущее количество устройств из базы
     current_limit_device = await get_limit_device(telegram_id)
-    price = tariff_data[f'{current_limit_device}_devices']["price"]
-    days = tariff_data[f'{current_limit_device}_devices']["days"]
-    await state.update_data(limit_ip_int=current_limit_device, days=days, price=price)
+    if current_limit_device is None:
+        await callback.message.answer(text=f"Не удалось получить лимит устройств из базы данных "
+                                           f"Обратитесь в поддержку!")
+    price = tariffs_data[tariff_data][f'{current_limit_device}_devices']["price"]
+    days = tariffs_data[tariff_data][f'{current_limit_device}_devices']["days"]
 
-    # Создаём платёж
-    confirmation_url, payment_id = await create_payment(
-        user_id=telegram_id,
-        tariff_date=days,
-        price=price,
-        quantity_devices=current_limit_device
-    )
-
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Оплатить", url=confirmation_url)]
-        ]
-    )
-
-    await callback.message.edit_text(
-        text=(
-            f"<b>💳 Продление подписки создано!\n\n"
-            f"💰 Сумма: {price}₽\n"
-            f"📱 Устройств: {current_limit_device}\n"
-            f"📅 Дней: {days}</b>\n\n"
-            "После оплаты нажмите кнопку 'Проверить оплату' или подождите — "
-            "бот сам проверит через 30 секунд."
-        ),
-        reply_markup=keyboard,
-        parse_mode="HTML"
-    )
-
-    await asyncio.create_task(
-        background_check_payment(
-            bot=callback.bot,
-            telegram_id=telegram_id,
-            payment_id=payment_id,
-            path="active",
-            action="active_extend",
-            days=days,
-            device_limit=current_limit_device,
-            state=state
-        )
-    )
+    await state.update_data(path="active",
+                            action="active_extend",
+                            limit_ip_int=current_limit_device,
+                            days=days,
+                            price=price
+                            )
+    await callback.message.edit_text(text=f"<b>💳 Продление подписки:</b>\n\n"
+                                          f"📱 Устройств: {current_limit_device}\n"
+                                          f"📅 Дней: {days}\n\n"
+                                          f"💰Сумма: {price}₽\n\n"
+                                          f"<b><u>Выберите способ оплаты:</u></b>",
+                                     parse_mode='HTML',
+                                     reply_markup=await choice_of_payment_system())
 
 
 # 3. Обработка выбора нового количества устройств если подписка активная
@@ -605,45 +541,245 @@ async def active_choose_devices(callback: CallbackQuery, state: FSMContext):
 
     price = added_devices * days_remaining * 6
 
-    # Создаём платёж
-    confirmation_url, payment_id = await create_payment(
-        user_id=telegram_id,
-        tariff_date=0,
-        price=price,
-        quantity_devices=selected_devices
-    )
-    await state.update_data(limit_ip=selected_devices, payment_id=payment_id, added_devices=added_devices)
+    await state.update_data(path="active",
+                            action="active_change_devices",
+                            days=days_remaining,
+                            limit_ip_int=selected_limit_ip_int,
+                            added_devices=added_devices,
+                            days_remaining=days_remaining,
+                            current_user_limit_ip=current_user_limit_ip,
+                            selected_limit_ip_int=selected_limit_ip_int,
+                            price=price
+                            )
 
+    await callback.message.edit_text(text=f"<b>💳 Изменение количества устройств:</b>\n\n"
+                       f"📱 Было: {current_user_limit_ip} → Будет: {selected_limit_ip_int}\n"
+                       f"🕒 Осталось дней подписки: {days_remaining}\n"
+                       f"➕ Добавляем устройств: {selected_limit_ip_int - current_user_limit_ip}\n"
+                       f"🧮 Рассчёт доплаты: {days_remaining} * {selected_limit_ip_int - current_user_limit_ip} * 6 ₽\n\n"
+                       f"💰 Доплата: {price}₽\n\n"
+                       f"❕ Стоимость — 6 ₽ за устройство в день.\n"
+                       f"❕ Доплата считается только за оставшиеся дни подписки.\n"
+                       f"❕ Срок подписки не изменяется.\n\n"
+                                          f"<b><u>Выберите способ оплаты:</u></b>",
+                                     parse_mode='HTML',
+                                     reply_markup=await choice_of_payment_system())
+
+
+# ============================================
+# 🔹 Обработчики для создания и проверки платежей
+# ============================================
+
+
+@router.callback_query(F.data == "cancel_payment_yookassa")
+async def cancel_payment(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    payment_id = data.get("payment_id")
+    telegram_id = callback.from_user.id
+
+    if not payment_id:
+        await callback.answer(text="⚠️ Платёж не найден.", show_alert=True)
+        return
+
+    # Проверяем ещё раз перед отменой
+    status = await check_payment_status(payment_id)
+    if status == "succeeded":
+        await callback.answer(text="✅ Платёж уже прошёл, подписка будет выдана автоматически.", show_alert=True)
+        return
+
+    # Если платёж реально не успешен — отменяем
+    await state.clear()
+    try:
+        await callback.message.delete()
+    except Exception as e:
+        logger.error(e)
+    await callback.message.answer("❌ Платёж отменён.")
+
+
+@router.callback_query(F.data == "pay_yookassa")
+async def create_payment_yookassa(callback: CallbackQuery, state: FSMContext):
+    telegram_id = callback.from_user.id
+    data = await state.get_data()
+    path = data.get("path")
+    tariff_days = data.get("days")
+    price = data.get("price")
+    limit_ip_int = data.get("limit_ip_int")
+    if path == "active":
+        action = data.get('action')
+    else:
+        action = None
+
+    confirmation_url, payment_id = await create_payment(user_id=telegram_id,
+                                                        tariff_days=tariff_days,
+                                                        price=price,
+                                                        quantity_devices=limit_ip_int,
+                                                        )
+    if not payment_id or not confirmation_url:
+        await callback.message.answer("❌ Ошибка создания платежа!")
+        await callback.message.delete()
+        return
+    await state.update_data(payment_id=payment_id, payment_message_id=callback.message.message_id)
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="💳 Оплатить", url=confirmation_url)]]
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💳 Оплатить", url=confirmation_url)],
+            [InlineKeyboardButton(text='❌ Отменить платёж', callback_data='cancel_payment_yookassa')]
+        ]
     )
+    asyncio.create_task(process_payment_automatically(telegram_id, payment_id, state, callback.message))
 
-    await callback.message.edit_text(
-        text=f"<b>💳 Платёж за изменение количества устройств создан!</b>\n\n"
-             f"📱 Было: {current_user_limit_ip} → Будет: {selected_devices}\n"
-             f"🕒 Осталось дней подписки: {days_remaining}\n"
-             f"➕ Добавляем устройств: {selected_devices - current_user_limit_ip}\n"
-             f"🧮 Рассчёт доплаты: {days_remaining} * {selected_devices - current_user_limit_ip} * 6 ₽\n\n"
-             f"💰 Доплата: {price}₽\n\n"
-             f"❕ Стоимость — 6 ₽ за устройство в день.\n"
-             f"❕ Доплата считается только за оставшиеся дни подписки.\n"
-             f"❕ Срок подписки не изменяется.",
+    if path == "no_subscription":
+        await callback.message.edit_text(
+            text=f"<b>💳 Оплата новой подписки:</b>\n\n"
+                 f"📱 Устройств: {limit_ip_int}\n"
+                 f"📅 Дней: {tariff_days}\n\n"
+                 f"💰Сумма: {price}₽\n\n"
+                 f"💡 После оплаты бот автоматически проверит платёж.",
         reply_markup=keyboard,
         parse_mode="HTML"
+        )
+        return
+
+    elif path == "expired":
+        await callback.message.edit_text(
+            text=f"<b>💳 Продление подписки:</b>\n\n"
+                 f"📱 Устройств: {limit_ip_int}\n"
+                 f"📅 Дней: {tariff_days}\n\n"
+                 f"💰Сумма: {price}₽\n\n"
+                 f"💡 После оплаты бот автоматически проверит платёж.",
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        return
+
+    elif path == "active":
+        if action == "active_extend":
+            await callback.message.edit_text(
+                text=f"<b>💳 Продление подписки:</b>\n\n"
+                     f"📱 Устройств: {limit_ip_int}\n"
+                     f"📅 Дней: {tariff_days}\n\n"
+                     f"💰Сумма: {price}₽\n\n"
+                 f"💡 После оплаты бот автоматически проверит платёж.",
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+            return
+
+        elif action == "active_change_devices":
+            data_for_active_change_devices = await state.get_data()
+            current_user_limit_ip = data_for_active_change_devices['current_user_limit_ip']
+            selected_limit_ip_int = data_for_active_change_devices['selected_limit_ip_int']
+
+            await callback.message.edit_text(
+                text = f"<b>💳 Изменение количества устройств:</b>\n\n"
+                       f"📱 Было: {current_user_limit_ip} → Будет: {selected_limit_ip_int}\n"
+                       f"🕒 Осталось дней подписки: {tariff_days}\n"
+                       f"➕ Добавляем устройств: {selected_limit_ip_int - current_user_limit_ip}\n"
+                       f"🧮 Рассчёт доплаты: {tariff_days} * {selected_limit_ip_int - current_user_limit_ip} * 6 ₽\n\n"
+                       f"💰 Доплата: {price}₽\n\n"
+                       f"❕ Стоимость — 6 ₽ за устройство в день.\n"
+                       f"❕ Доплата считается только за оставшиеся дни подписки.\n"
+                       f"❕ Срок подписки не изменяется.\n\n"
+                 f"💡 После оплаты бот автоматически проверит платёж.",
+                reply_markup = keyboard,
+                parse_mode = "HTML"
+            )
+            return
+        return
+
+
+# После создания платежа
+async def process_payment_automatically(telegram_id: int, payment_id: str, state: FSMContext, message):
+    """
+    Автоматическая проверка платежа каждые 5 секунд в течение 10 минут.
+    """
+    end_time = datetime.now() + timedelta(minutes=10)  # тайм-аут 10 минут
+    while datetime.now() < end_time:
+        try:
+            status = await check_payment_status(payment_id)
+            if status == "succeeded":
+                # выдаём товар и снимаем блокировку
+                await subscription_issuance(telegram_id=telegram_id, payment_id=payment_id, state=state)
+                await message.delete()  # удаляем сообщение с кнопками
+                return
+            elif status == "pending":
+                # ожидаем следующую проверку
+                await asyncio.sleep(5)  # проверка каждые 5 секунд
+            else:
+                # если оплата не прошла
+                await message.edit_text("❌ Платёж не был подтверждён. Попробуйте снова.")
+                await state.clear()
+                return
+        except Exception as e:
+            logger.error(f"Ошибка проверки платежа пользователя {telegram_id}: {e}")
+            await asyncio.sleep(5)
+
+    # если прошло 10 минут, а платёж так и не подтверждён
+    await message.edit_text("⏰ Время на оплату истекло. Попробуйте снова.")
+    await state.clear()
+
+
+@router.callback_query(F.data == "pay_telegram_stars")
+async def create_payment_telegram_stars(callback: CallbackQuery, state: FSMContext):
+    await  callback.message.delete()
+    telegram_id = callback.from_user.id
+    data = await state.get_data()
+
+    path = data.get("path")
+    price_stars = int(data.get("price") / 2)
+    if path == "active":
+        action = data.get("action")
+    else:
+        action = None
+
+    # Сформируем описание платежа
+    if path == "no_subscription":
+        description = (
+            f"💳 Оплата"
+                       )
+
+    elif path == "expired" or (path == "active" and action == "active_extend"):
+        description = (
+            f"💳 Оплата"
+                       )
+    elif path == "active" and action == "active_change_devices":
+        description = (
+            f"💳 Оплата"
+        )
+    else:
+        description = "💳 Оплата"
+
+    payment_id = str(uuid.uuid4())
+    await state.update_data(payment_id=payment_id)
+
+    # Создаём платеж
+    success = await create_stars_payment(
+        message=callback.message,
+        price=price_stars,
+        description=description,
+        payment_id=payment_id
     )
 
-    # Фоновая проверка оплаты
-    await asyncio.create_task(
-        background_check_payment(
-            bot=callback.bot,
-            telegram_id=telegram_id,
-            payment_id=payment_id,
-            path="active",
-            action="active_change_devices",
-            device_limit=selected_devices,
-            state=state
-        )
+    if not success:
+        await callback.message.answer("❌ Ошибка создания платежа!")
+        return
+
+
+@router.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
+async def stars_success_payment(message: Message, state: FSMContext):
+    data = await state.get_data()
+    payment_id = data.get("payment_id")
+
+    if not payment_id:
+        await message.answer("❌ Ошибка: не найден идентификатор платежа")
+        return
+
+    # Выдаём подписку
+    await subscription_issuance(
+        telegram_id=message.from_user.id,
+        payment_id=payment_id,
+        state=state
     )
+
 
 
 # ============================================
