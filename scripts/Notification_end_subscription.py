@@ -29,7 +29,7 @@ NOTIFY_AFTER_1_DAY = timedelta(days=1)
 NOTIFY_AFTER_2_DAYS = timedelta(days=2)
 
 DELETE_AFTER = timedelta(days=3)
-CHECK_INTERVAL = timedelta(minutes=15)  # Интервал запуска проверки пользователей для отправки увеомлений
+CHECK_INTERVAL = timedelta(minutes=15)  # Интервал запуска проверки пользователей для отправки уведомлений
 
 # ==================== НАСТРОЙКИ ТЕКСТОВ УВЕДОМЛЕНИЙ ====================
 
