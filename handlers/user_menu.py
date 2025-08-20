@@ -317,7 +317,7 @@ async def handle_buy_subscription(user_id: int, msg: Message, state: FSMContext)
     if status == 'no_subscription':
         await msg.answer(
             text="<b>❌ У вас нет активной подписки.</b>\n\n"
-                 "📅 Выберите срок подписки:",
+                 "📅 <b><u>Выберите срок подписки:</u></b>",
             reply_markup=await inline_price(),
             parse_mode='HTML'
         )
@@ -325,7 +325,7 @@ async def handle_buy_subscription(user_id: int, msg: Message, state: FSMContext)
 
     elif status == 'expired':
         await msg.answer(text="<b>❌ Ваша подписка истекла.</b>\n\n"
-                              "📅 <b>Выберите срок продления подписки:</b>",
+                              "📅 <b><u>Выберите срок продления подписки:</u></b>",
             reply_markup=await inline_price(),
             parse_mode='HTML'
         )
