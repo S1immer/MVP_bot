@@ -350,7 +350,8 @@ async def no_sub_choose_tariff(callback: CallbackQuery, state: FSMContext):
     print(f"[no_sub_choose_tariff] User: {callback.from_user.id}, tariff chosen: {callback.data}")
     await state.update_data(tariff=callback.data)
     await callback.message.edit_text(
-        text="Выберите количество устройств:",
+        text="📱 <b><u>Выберите количество устройств:</u></b>",
+        parse_mode='HTML',
         reply_markup=await inline_device()
     )
     await state.set_state(SubscriptionState.no_sub_choose_devices)
