@@ -4,16 +4,16 @@ from logs.logging_config import logger
 
 async def create_stars_payment(
     message: Message,
-    amount: int,
+    price: int,
     description: str,
-    payload: str = None
+    payment_id: str
 ) -> bool:
     """
     Создает платеж в Stars
     :param message: Объект сообщения от пользователя
-    :param amount: Сумма в звездах (минимум 1)
+    :param price: Сумма в звездах (минимум 1)
     :param description: Описание платежа
-    :param payload: Уникальный идентификатор (если не указан - создается автоматически)
+    :param payment_id: Уникальный идентификатор (если не указан - создается автоматически)
     :return: True если платеж создан успешно
     """
     try:
@@ -22,8 +22,8 @@ async def create_stars_payment(
             description=description,
             provider_token="",  # Для Stars обязательно пустая строка
             currency="XTR",
-            prices=[LabeledPrice(label="Stars", amount=amount)],
-            payload=payload or f"payment_{message.from_user.id}"
+            prices=[LabeledPrice(label="Stars", amount=price)],
+            payload=payment_id
         )
         return True
     except Exception as e:
