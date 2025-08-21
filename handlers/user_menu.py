@@ -254,7 +254,7 @@ async def remaining_days(msg: Message):
 
 
 # Обработчик кнопки "Инструкция и ключ"
-@router.message(F.text == "⚙️ Инструкция и ключ")
+@router.message(F.text == "🔑 Инструкция и ключ")
 @anti_spam(
     warn_delay=0.5,
     block_delay=5,
