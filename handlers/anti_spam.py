@@ -30,7 +30,7 @@ def anti_spam(
                 USER_STATES[user_id] = {}
             if section not in USER_STATES[user_id]:
                 USER_STATES[user_id][section] = {
-                    'last_request': 0,
+                    'last_request': asyncio.get_event_loop().time() - warn_delay,
                     'blocked': False
                 }
 
