@@ -69,8 +69,8 @@ async def main():
                         else:
                             await session.execute(
                                 text(
-                                    "INSERT INTO traffic_data (name_country, server_name, traffic) VALUES (:country, :server_name, :traffic)"),
-                                {"country": country, "server_name": str(server_key), "traffic": traffic_gb}
+                                    "INSERT INTO traffic_data (name_country, server_name, traffic, quantity_users) VALUES (:country, :server_name, :traffic, :quantity_users)"),
+                                {"country": country, "server_name": str(server_key), "traffic": traffic_gb, "quantity_users": 0}
                             )
 
                         await session.commit()
@@ -78,37 +78,36 @@ async def main():
                         # Сброс трафика
                         reset_response = http_session.post(reset_traffic_url, headers=headers)
                         if reset_response.status_code == 200:
-                            logger.info(f"Трафик для {server_key} успешно сброшен!")
+                            logger.info(f"[balancer_traffic] Трафик для {server_key} успешно сброшен!")
                         else:
-                            logger.error(f"Ошибка при сбросе трафика для {server_key}: {reset_response.status_code}")
-                            await notify_admin(text=f"Ошибка при сбросе трафика для {server_key}!\n"
+                            logger.error(f"[balancer_traffic] Ошибка при сбросе трафика для {server_key}: {reset_response.status_code}")
+                            await notify_admin(text=f"[balancer_traffic] Ошибка при сбросе трафика для {server_key}!\n"
                                                     f"Ошибка: {reset_response.status_code}")
                     else:
-                        logger.error(f"Ошибка при получении трафика: {traffic_response.status_code}")
-                        await notify_admin(text=f"Ошибка при получении трафика!\n"
+                        logger.error(f"[balancer_traffic] Ошибка при получении трафика на {server_key}: {traffic_response.status_code}")
+                        await notify_admin(text=f"[balancer_traffic] Ошибка при получении трафика на {server_key}!\n"
                                                 f"Ошибка: {traffic_response.status_code}")
                 else:
-                    logger.error(f"Ошибка авторизации на {server_key}: {response.status_code}")
-                    await notify_admin(text=f"Ошибка авторизации на {login_url}\n"
+                    logger.error(f"[balancer_traffic] Ошибка авторизации на {server_key}: {response.status_code}")
+                    await notify_admin(text=f"[balancer_traffic] Ошибка авторизации на {login_url}\n"
                                             f"Ошибка: {response.status_code}")
 
             except requests.exceptions.RequestException as e:
-                logger.error(f"Ошибка при запросе {server_key}: {e}")
-                await notify_admin(text=f"Ошибка при запросе {server_key}!\n"
+                logger.error(f"[balancer_traffic] Ошибка при запросе {server_key}: {e}")
+                await notify_admin(text=f"[balancer_traffic] Ошибка при запросе {server_key}!\n"
                                         f"Ошибка: {e}")
                 continue
             except SQLAlchemyError as e:
                 await session.rollback()
-                logger.info(f"Ошибка БД: {e}")
-                await notify_admin(text=f"Ошибка БД: {e}")
+                logger.info(f"[balancer_traffic] Ошибка БД: {e}")
+                await notify_admin(text=f"[balancer_traffic] Ошибка БД: {e}")
                 continue
             except Exception as e:
-                logger.info(f"Неизвестная ошибка на сервере {server_key}: {e}")
-                await notify_admin(text=f"Неизвестная ошибка на сервере {server_key}!\n"
+                logger.info(f"[balancer_traffic] Неизвестная ошибка на сервере {server_key}: {e}")
+                await notify_admin(text=f"[balancer_traffic] Неизвестная ошибка на сервере {server_key}!\n"
                                         f"Ошибка: {e}")
                 continue
             finally:
-                # Всегда закрываем HTTP сессию
                 if http_session:
                     http_session.close()
 
