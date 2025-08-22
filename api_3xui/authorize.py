@@ -30,13 +30,23 @@ async def login_with_credentials(server_name: str):
         "password": password
     }
 
-    async with session.post(auth_url, json=data) as response:
-        if response.status == 200:
-            session.cookie_jar.update_cookies(response.cookies)
-            # print(f"Куки после авторизации: {session.cookie_jar.filter_cookies(URL(auth_url))}")
-            return session
-        else:
-            raise Exception(f"Ошибка авторизации: {response.status}, {await response.text()}")
+    try:
+        async with session.post(auth_url, json=data) as response:
+            if response.status == 200:
+                session.cookie_jar.update_cookies(response.cookies)
+                return session
+            else:
+                error_text = await response.text()
+                # закрываем сессию при неуспешной авторизации
+                await session.close()
+                session = None
+                raise Exception(f"Ошибка авторизации: {response.status}, {error_text}")
+    except Exception:
+        # гарантированно закрыть сессию при исключении
+        if session and not session.closed:
+            await session.close()
+            session = None
+        raise
 
 
 # async def main():
