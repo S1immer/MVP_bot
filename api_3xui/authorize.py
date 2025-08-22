@@ -1,6 +1,5 @@
 import json
 import aiohttp
-# import asyncio
 from data_servers.servers import SERVER_ID
 
 
@@ -49,18 +48,6 @@ async def login_with_credentials(server_name: str):
         raise
 
 
-# async def main():
-#     server_name = 'S1'
-#
-#     auth = await login_with_credentials(server_name)
-#     print(f"Авторизация прошла успешно")
-#
-#
-# if __name__ == "__main__":
-#     asyncio.run(main())
-
-
-
 async def get_clients(session: aiohttp.ClientSession, server_id_name: str):
     """
     Получение списка клиентов.
@@ -102,23 +89,3 @@ async def link(session: aiohttp.ClientSession, server_id_name: str, client_uuid:
         f"&fp=random&sni={SERVER_ID[server_id_name]['SNI']}&sid={SERVER_ID[server_id_name]['SID']}&spx=%2F&flow={flow}#{SERVER_ID[server_id_name]['PREFIX']} [{short_uuid}] [{telegram_id}]"
     )
     return key_vless
-
-
-# async def main():
-#     server_name = input("Введите идентификатор сервера (например, S1 или S2): ")
-#
-#     # Авторизация с использованием данных из server_id
-#     session = await login_with_credentials(server_name, server_id[server_name]['username'],
-#                                            server_id[server_name]['password'])
-#
-#     client_id = input("Введите идентификатор клиента: ")
-#     email = input("Введите электронную почту клиента: ")
-#
-#     link_data = await link(session, server_name, client_uuid, telegram_id)
-#
-#     print("Ссылка для подключения:")
-#     print(link_data)
-#     await session.close()
-#
-#
-# asyncio.run(main())
