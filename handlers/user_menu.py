@@ -140,11 +140,11 @@ async def start_func(msg: Message):
     # Проверка регистрации пользователя
     if not await check_user_registered(telegram_id):
         await register_user(telegram_id)
-        print(f"Пользователь с telegram_id {telegram_id} зарегистрирован.")
+        trial_days = tariffs_data['trial']['1_devices']['days']
 
         keyboard_show_tariffs = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🎁 Тестовый период", callback_data="trial")],
+            [InlineKeyboardButton(text=f"🎁 Тестовый период ({trial_days} дня)", callback_data="trial")],
             [InlineKeyboardButton(text="🗂️ Выбрать тариф", callback_data="show_tariffs")]
         ]
         )
