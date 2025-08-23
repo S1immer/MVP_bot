@@ -46,13 +46,9 @@ async def add_user(session, server_id_name: str, client_uuid: str, telegram_id: 
     }
 
     async with session.post(url, json=data, headers=headers) as response:
-        # print(f"Запрос на добавление пользователя: {data}")
-        # print(f"Статус ответа: {response.status}")
         response_text = await response.text()
-        # print(f"Ответ от сервера: {response_text}")
 
         if response.status == 200:
-            # print(f"Пользователь добавлен: uuid={client_uuid}")
             return await response.json()
         else:
             logger.error(f"[add_user] Ошибка при добавлении пользователя {telegram_id}: {response.status}, {response_text}")
@@ -107,11 +103,8 @@ async def extend_client_key(session, server_id_name: str, client_uuid: str, limi
     try:
         async with session.post(f"{api_url}/panel/api/inbounds/updateClient/{client_uuid}",
                                 json=payload, headers=headers) as response:
-            print(f"[extend_client_key] user - [{telegram_id}] POST: {response.url} Status: {response.status}")
-            print(f"[extend_client_key] user - [{telegram_id}] POST Request Data: {json.dumps(payload, indent=2)}")
             info = json.dumps(payload, indent=2)
             response_text = await response.text()
-            print(f"[extend_client_key] user - [{telegram_id}] POST Response: {response_text}")
 
             if response.status == 200:
                 return True
