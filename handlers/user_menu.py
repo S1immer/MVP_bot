@@ -286,10 +286,6 @@ async def instruction_key(msg: Message, state: FSMContext):
 
 # ______________________________________________________________________________________________________
 
-# Обработчик кнопки "💸 Оплатить подписку"
-# @router.message(F.text == "💸 Оплатить подписку")
-# async def buy_subscription(msg: Message, state: FSMContext):
-
 
 @router.message(F.text == "💸 Оплатить подписку")
 @anti_spam(
