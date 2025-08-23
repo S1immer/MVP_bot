@@ -1,4 +1,3 @@
-# import asyncio
 from uuid import uuid4
 
 from database.functions_db_async import get_least_loaded_server
@@ -18,6 +17,7 @@ from logs.logging_config import logger
 
 async def key_generation(telegram_id: int, period: str, devices: int):
     """"
+    Генерация ключа на наименее загруженном сервере по тарифу
     :param telegram_id - telegram_id пользователя
     :param period - пример 'month', 'three_months'
     :param devices - ip_limit для пользователя
@@ -27,11 +27,7 @@ async def key_generation(telegram_id: int, period: str, devices: int):
 
     try:
         server_id_name = await get_least_loaded_server()
-        print(f"Выбран сервер - {server_id_name}")
-        print("Создаю сессию")
         session = await login_with_credentials(server_id_name)
-        print("Сессия создана")
-        print("Авторизация успешна")
 
         # Далее ваша логика добавления пользователя и получения ключа
         client_uuid = str(uuid4())
@@ -80,26 +76,5 @@ async def key_generation(telegram_id: int, period: str, devices: int):
         return None
 
     finally:
-        print("Закрываю сессию")
         if session:
             await session.close()
-            print("Сессия закрыта")
-
-
-# # Тестирование функции
-# async def main():
-#     telegram_id = 99999235
-#     period = 'month'
-#     devices = '1_devices'
-#     # period = 'sagdser'
-#     # devices = 'gsdehs'
-#
-#     key = await key_generation(telegram_id, period, devices)
-#     if key:
-#         print(f"Тестовый ключ: {key}")
-#     else:
-#         print("Не удалось получить тестовый ключ.")
-#
-#
-# if __name__ == "__main__":
-#     asyncio.run(main())
