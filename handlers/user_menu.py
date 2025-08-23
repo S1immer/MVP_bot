@@ -1,21 +1,21 @@
 from aiogram import types, Router, F
-from aiogram.types import Message, BotCommand, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, BotCommand, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.filters import Command
-from aiogram.filters.state import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from os import path
-from data.loader import bot
 
 from database.functions_db_async import *
 
-from datetime import datetime
+from data.loader import bot
 
-from keyboard.user_keyboard import *
+from keyboard.user_keyboard import main_menu_keyboard, choosing_a_device, inline_price, inline_server_change
 
 from handlers.states import SubscriptionState
 
 from handlers.anti_spam import anti_spam
+from data_servers.tariffs import tariffs_data
+from logs.logging_config import logger
 
 
 
@@ -37,12 +37,6 @@ async def set_commands():
 
 # ______________________________________________________________________________________________________
 @router.message(Command("pay"))
-@anti_spam(
-    warn_delay=0.5,
-    block_delay=2,
-    section='pay',
-    message_text="🚫 Пожалуйста, не спамьте!"
-)
 async def pay_sub(msg: Message, state: FSMContext):
     await buy_subscription(msg, state)
 
