@@ -132,14 +132,8 @@ async def confirm_extend_subscription(callback: CallbackQuery, state: FSMContext
         logger.error(f"[extend_subscription] Пустой client_uuid для пользователя {user_id}")
         await state.clear()
         return
-    
-    # Логируем данные для отладки
-    logger.info(f"[extend_subscription] Попытка продления для пользователя {user_id}:")
-    logger.info(f"[extend_subscription] server_id: {server_id}")
-    logger.info(f"[extend_subscription] client_uuid: {client_uuid}")
-    logger.info(f"[extend_subscription] ip_limit: {ip_limit}")
-    logger.info(f"[extend_subscription] extension_days: {extension_days}")
-    
+
+
     # Показываем процесс продления
     status_msg = await callback.message.edit_text("⏳ Продление подписки...")
     
@@ -183,17 +177,12 @@ async def confirm_extend_subscription(callback: CallbackQuery, state: FSMContext
         # Конвертируем в UNIX timestamp в миллисекундах
         expiry_timestamp = int(new_expiry_time.timestamp() * 1000)
         
-        logger.info(f"[extend_subscription] Текущее окончание подписки: {deleted_at}")
-        logger.info(f"[extend_subscription] Оставшиеся дни: {remaining_days}")
-        logger.info(f"[extend_subscription] Новое время окончания: {new_expiry_time}")
-        logger.info(f"[extend_subscription] UNIX timestamp: {expiry_timestamp}")
-        
         # Продлеваем подписку на сервере
         extend_result = await extend_time_key(
             telegram_id=user_id,
             server_id_name=server_id,
             client_uuid=client_uuid,
-            limit_ip=ip_limit + 1,  # +1 как в оригинальном коде
+            limit_ip=ip_limit + 1,  # +1 чтобы не было блокировки
             expiry_time=expiry_timestamp
         )
         
@@ -228,11 +217,7 @@ async def confirm_extend_subscription(callback: CallbackQuery, state: FSMContext
                     )
                 
                 await status_msg.edit_text(success_text, parse_mode="Markdown")
-                
-                # Логируем успешное продление
                 logger.info(f"[extend_subscription] Админ {callback.from_user.id} продлил подписку пользователю {user_id} на {extension_days} дней")
-                
-                # Уведомляем админа
                 await notify_admin(f"✅ Админ {callback.from_user.id} продлил подписку пользователю {user_id} на {extension_days} дней")
                 
             else:
@@ -248,30 +233,18 @@ async def confirm_extend_subscription(callback: CallbackQuery, state: FSMContext
                 )
                 
                 await status_msg.edit_text(warning_text, parse_mode="Markdown")
-                
-                # Логируем предупреждение
                 logger.warning(f"[extend_subscription] Подписка продлена на сервере, но БД не обновлена для пользователя {user_id}")
-                
-                # Уведомляем админа о проблеме с БД
                 await notify_admin(f"⚠️ Подписка продлена на сервере, но БД не обновлена для пользователя {user_id}")
         else:
             error_text = f"❌ Не удалось продлить подписку пользователю `{user_id}` на сервере."
             await status_msg.edit_text(error_text, parse_mode="Markdown")
-            
-            # Логируем ошибку
             logger.error(f"[extend_subscription] Админ {callback.from_user.id} не смог продлить подписку пользователю {user_id}")
-            
-            # Уведомляем админа об ошибке
             await notify_admin(f"❌ Админ {callback.from_user.id} не смог продлить подписку пользователю {user_id}")
     
     except Exception as e:
         error_text = f"❌ Произошла ошибка при продлении подписки: {e}"
         await status_msg.edit_text(error_text)
-        
-        # Логируем ошибку
         logger.error(f"[extend_subscription] Ошибка при продлении подписки пользователю {user_id}: {e}")
-        
-        # Уведомляем админа об ошибке
         await notify_admin(f"❌ Ошибка при продлении подписки пользователю {user_id}: {e}")
     
     finally:
@@ -292,7 +265,6 @@ async def get_user_data_for_extend(telegram_id: int):
     Возвращает (server_id, client_uuid, ip_limit) или None
     """
     try:
-        # Используем существующую функцию для получения данных пользователя
         user_data = await get_data_for_delet_client(telegram_id)
         if user_data:
             server_id, client_uuid, ip_limit = user_data
