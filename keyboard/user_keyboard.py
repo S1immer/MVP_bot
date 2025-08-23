@@ -25,6 +25,9 @@ from database.functions_db_async import *
 
 from datetime import datetime, timedelta
 
+from logs.logging_config import logger
+from logs.admin_notify import notify_admin
+
 
 
 
@@ -338,7 +341,10 @@ async def subscription_issuance(telegram_id: int, payment_id: str, state: FSMCon
 async def back_to_start_pay(callback: CallbackQuery, state: FSMContext):
     from handlers.user_menu import handle_buy_subscription
     telegram_id = callback.from_user.id
-    await callback.message.delete()
+    try:
+        await callback.message.delete()
+    except Exception as e:
+        logger.error(e)
     await handle_buy_subscription(telegram_id, callback.message, state)
 
 
@@ -699,14 +705,20 @@ async def process_payment_automatically(telegram_id: int, payment_id: str, state
             if status == "succeeded":
                 # выдаём товар и снимаем блокировку
                 await subscription_issuance(telegram_id=telegram_id, payment_id=payment_id, state=state)
-                await message.delete()  # удаляем сообщение с кнопками
+                try:
+                    await message.delete()  # удаляем сообщение с кнопками
+                except Exception as e:
+                    logger.error(e)
                 return
             elif status == "pending":
                 # ожидаем следующую проверку
                 await asyncio.sleep(5)  # проверка каждые 5 секунд
             else:
                 # если оплата не прошла
-                await message.edit_text("❌ Платёж не был подтверждён. Попробуйте снова.")
+                try:
+                    await message.edit_text("❌ Платёж не был подтверждён. Попробуйте снова.")
+                except Exception as e:
+                    logger.error(e)
                 await state.clear()
                 return
         except Exception as e:
@@ -714,7 +726,10 @@ async def process_payment_automatically(telegram_id: int, payment_id: str, state
             await asyncio.sleep(5)
 
     # если прошло 10 минут, а платёж так и не подтверждён
-    await message.edit_text("⏰ Время на оплату истекло. Попробуйте снова.")
+    try:
+        await message.edit_text("⏰ Время на оплату истекло. Попробуйте снова.")
+    except Exception as e:
+        logger.error(e)
     await state.clear()
 
 
@@ -994,7 +1009,6 @@ async def trial_button_callback(query: CallbackQuery):
         trial_used = await check_used_trial_period(telegram_id=telegram_id)
         if trial_used:
             await query.answer(text="❗Вы уже использовали пробный период.",
-                               replay_markup=await main_menu_keyboard(),
                                show_alert=True)
             return None
 
