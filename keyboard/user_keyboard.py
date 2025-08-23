@@ -52,9 +52,10 @@ async def main_menu_keyboard() -> ReplyKeyboardMarkup:
 
 
 async def trial_button() -> InlineKeyboardMarkup:
+    trial_days = tariffs_data['trial']['1_devices']['days']
     """Создает инлайн-кнопку для тестового периода."""
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text='🎁 Тестовый период', callback_data='trial')]]
+        inline_keyboard=[[InlineKeyboardButton(text=f'🎁 Тестовый период ({trial_days} дня)', callback_data='trial')]]
     )
 
 
