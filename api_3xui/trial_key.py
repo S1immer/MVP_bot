@@ -40,7 +40,7 @@ async def create_trial_key(telegram_id: int):
                                   enable=True, flow="xtls-rprx-vision")
 
 
-        if response.get("success"):
+        if response and response.get("success"):
             connect_link = await link(session, server_id_name, client_uuid, str(telegram_id))
 
             return connect_link, client_uuid, limit_ip, server_id_name, expiry_time
