@@ -17,7 +17,7 @@ def bytes_to_gb(byte_value):
 """
 
 
-async def main():
+async def balancer_traffic():
     async with Session_db() as session:
         for server_key, server_info in SERVER_ID.items():
             http_session = None
@@ -112,5 +112,16 @@ async def main():
                     http_session.close()
 
 
+async def reset_traffic_daily():
+    """Функция для ежедневного сброса трафика"""
+    try:
+        logger.info("[Сброс трафика] 🕛 Запуск ежедневного сброса трафика...")
+        await balancer_traffic()
+        logger.info("[Сброс трафика] ✅ Ежедневный сброс трафика завершен")
+        await notify_admin(f"[Сброс трафика] ✅ Ежедневный сброс трафика завершен")
+    except Exception as e:
+        logger.error(f"[Сброс трафика] ❌ Ошибка при ежедневном сбросе трафика: {e}")
+        await notify_admin(f"[Сброс трафика] ❌ Ошибка при ежедневном сбросе трафика: {e}")
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(balancer_traffic())
