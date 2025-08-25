@@ -20,7 +20,7 @@ from contextlib import suppress
 
 
 # ==================== НАСТРОЙКИ ИНТЕРВАЛОВ УВЕДОМЛЕНИЙ ====================
-TEST_MODE = True
+TEST_MODE = False
 if TEST_MODE:
     NOTIFY_BEFORE_2_DAYS = timedelta(seconds=50)  # → Через 30 сек
     NOTIFY_BEFORE_1_DAY = timedelta(seconds=39)  # → Через 25 сек
