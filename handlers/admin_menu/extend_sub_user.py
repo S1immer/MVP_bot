@@ -8,6 +8,7 @@ from api_3xui.Update_time_key import extend_time_key
 from logs.logging_config import logger
 from logs.admin_notify import notify_admin
 from datetime import datetime, timedelta
+from data.loader import bot
 
 router = Router()
 
@@ -219,6 +220,19 @@ async def confirm_extend_subscription(callback: CallbackQuery, state: FSMContext
                 await status_msg.edit_text(success_text, parse_mode="Markdown")
                 logger.info(f"[extend_subscription] Админ {callback.from_user.id} продлил подписку пользователю {user_id} на {extension_days} дней")
                 await notify_admin(f"✅ Админ {callback.from_user.id} продлил подписку пользователю {user_id} на {extension_days} дней")
+                try:
+                    user_message = (
+                        f"🎉 Ваша подписка была продлена администратором!\n\n"
+                        f"📅 Продлено на: {extension_days} дней\n"
+                        f"🕐 Новое окончание подписки: {new_expiry_time.strftime('%d.%m.%Y %H:%M')}\n"
+                        f"📱 Количество устройств: {ip_limit}\n\n"
+                        f"✨ Спасибо, что пользуетесь нашим сервисом! ✨"
+                    )
+                    await bot.send_message(chat_id=user_id, text=user_message)
+                    logger.info(f"[extend_subscription] Уведомление отправлено пользователю {user_id}")
+
+                except Exception as e:
+                    logger.error(f"[extend_subscription] Не удалось отправить уведомление пользователю {user_id}: {e}")
                 
             else:
                 # Продление на сервере прошло успешно, но обновление БД не удалось
