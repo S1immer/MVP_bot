@@ -885,7 +885,7 @@ async def server_change(callback: CallbackQuery):
             server_id_name=new_server_id,
             client_uuid=new_client_uuid,
             telegram_id=str(telegram_id),
-            limit_ip=ip_limit,
+            limit_ip=ip_limit + 1,
             total_gb=0,
             expiry_time=deleted_at_unix_ms,
             enable=True,
