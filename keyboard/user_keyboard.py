@@ -1087,7 +1087,7 @@ async def show_instruction(callback_query: CallbackQuery):
 
             'android': "Инструкция для 🤖<b>Android:</b> \n\n" 
                     "<b>1. Скопируйте ключ доступа.</b>\n\n"
-                    "<b>2. Установите приложение</b> 🌐<a href='https://play.google.com/store/apps/details?id=app.hiddify.com'>HiddifyNG</a>.\n\n"
+                    "<b>2. Установите приложение</b> 🌐<a href='https://play.google.com/store/apps/details?id=app.hiddify.com'>Hiddify</a>.\n\n"
                     "<b>3. Запустите HiddifyNG</b> и нажмите <b>''Import from clipboard''</b>, затем подтвердите.\n\n"
                     "<b>4.</b> Нажмите <b>''Click to connect''</b> и затем <b>''Ok''.</b>\n\n",
 
