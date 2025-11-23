@@ -79,13 +79,13 @@ async def link(session: aiohttp.ClientSession, server_id_name: str, client_uuid:
 
     inbounds = response['obj'][0]
     stream_settings = json.loads(inbounds['streamSettings'])
-    tcp = stream_settings.get('network', 'tcp')
+    grpc = stream_settings.get('network', 'gRPC')
     reality = stream_settings.get('security', 'reality')
     flow = stream_settings.get('flow', 'xtls-rprx-vision')
     short_uuid = client_uuid[:5]
 
     key_vless = (
-        f"vless://{client_uuid}@{SERVER_ID[server_id_name]['DOMEN']}:{SERVER_ID[server_id_name]['PORT']}?type={tcp}&security={reality}&pbk={SERVER_ID[server_id_name]['PBK']}"
+        f"vless://{client_uuid}@{SERVER_ID[server_id_name]['DOMEN']}:{SERVER_ID[server_id_name]['PORT']}?type={grpc}&security={reality}&pbk={SERVER_ID[server_id_name]['PBK']}"
         f"&fp=random&sni={SERVER_ID[server_id_name]['SNI']}&sid={SERVER_ID[server_id_name]['SID']}&spx=%2F&flow={flow}#{SERVER_ID[server_id_name]['PREFIX']} [{short_uuid}] [{telegram_id}]"
     )
     return key_vless
